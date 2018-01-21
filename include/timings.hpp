@@ -1,7 +1,7 @@
 #ifndef __PDP11_TIMINGS_
 #define __PDP11_TIMINGS_
 
-namespace PDP11 {
+//namespace PDP11 {
 
 class Timings {
         int _mem_r;
@@ -49,12 +49,12 @@ public:
         static Timings* timings()
         {
                 if (!_timings) {
-                        _timings = new Timings
+                        _timings = new Timings;
                 }
                 return _timings;
         }
 };
 
-};
+//};
 
 #endif
