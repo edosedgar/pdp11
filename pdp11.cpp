@@ -29,7 +29,7 @@ int PDP11::op_addr(Instruction i, uint32_t* addr, int n) {
                 return -EINVAL;
         }
 
-        if (op == 014) {
+        if (op == 07) {
                 switch (mod) {
                         case R7IMM:
                                 ret += mem.read(MEM_SIZE + 14, addr);
@@ -146,8 +146,8 @@ int PDP11::exec() {
 
         ret += mem.read(MEM_SIZE + 14, &pc);
         ret += mem.read(pc, ins);
-        mem.read(pc + 1, ins + 1);
-        mem.read(pc + 2, ins + 2);
+        mem.read(pc + 2, ins + 1);
+        mem.read(pc + 4, ins + 2);
         Instruction cur = dec.decode(ins, 3);
 
         ret += mem.incr(MEM_SIZE + 14, 2);
@@ -231,9 +231,9 @@ int PDP11::exec() {
                         ret += mem.write(ea1, &tmp1);
                         break;
                 case MOV:
-                        ret += op_addr(cur, &ea1, 1);
+                        ret += op_addr(cur, &ea1, 2);
                         ret += mem.read(ea1, &tmp1);
-                        ret += op_addr(cur, &ea2, 2);
+                        ret += op_addr(cur, &ea2, 1);
                         ret += mem.write(ea2, &tmp1);
                         psw_value(tmp1);
                         _psw.psw.v = 0;

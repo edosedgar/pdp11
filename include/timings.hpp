@@ -10,8 +10,8 @@ class Timings {
         int _exec;
         int _reg;
         static Timings* _timings;
-        Timings(int mem_r = 100,
-                int mem_w = 100,
+        Timings(int mem_r = 10,
+                int mem_w = 10,
                 int dec = 1,
                 int reg = 1,
                 int exec = 1)

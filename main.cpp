@@ -33,14 +33,15 @@ int main(int argc, char* argv[]) {
 
         PDP11 pdp = PDP11();
 
-        pdp.load((uint8_t*) rw, 16);
+        pdp.load((uint8_t*) rw, size);
 
         std::cout << pdp.info_registers() << '\n';
         pdp.exec();
 
         while(pdp.get_state() != HALTED) {
-                pdp.exec();
+                int ret = pdp.exec();
                 std::cout << '\n' << pdp.info_instruction(pdp.get_pc()) << '\n';
+                std::cout << "Time: " << ret << '\n';
                 std::cout << pdp.info_registers() << '\n';
         }
         delete [] rw;
