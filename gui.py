@@ -6,25 +6,83 @@ gi.require_version('PangoCairo', '1.0')
 from gi.repository import Gtk, Gdk, Pango, GObject, cairo, PangoCairo
 import socket, sys
 
+class MachineState():
+
+    def __init__(self, stateview, server):
+        self.stateview = stateview
+        self.server = server
+        self.r0 = 0
+        self.r1 = 0
+        self.r2 = 0
+        self.r3 = 0
+        self.r4 = 0
+        self.r5 = 0
+        self.r6 = 0
+        self.r7 = 0
+        self.c = 0
+        self.v = 0
+        self.z = 0
+        self.n = 0
+        self.t = 0
+        self.i = 0
+        self.cycle = 0 #us
+        self.time = 0
+
+    def show_state(self):
+        statebuffer2 = self.stateview.get_buffer()
+        string = "\n R0:" + "{0:#0{1}x}".format(self.r0, 6) + "    "
+        string += "R1:" + "{0:#0{1}x}".format(self.r1, 6) + "   "
+        string += "R2:" + "{0:#0{1}x}".format(self.r2, 6) + "\n"
+        string += " R3:" + "{0:#0{1}x}".format(self.r3, 6) + "    "
+        string += "R4:" + "{0:#0{1}x}".format(self.r4, 6) + "   "
+        string += "R5:" + "{0:#0{1}x}".format(self.r5, 6) + "\n"
+        string += "    R6(SP):" + "{0:#0{1}x}".format(self.r6, 6) + "  "
+        string += "R7(PC):" + "{0:#0{1}x}".format(self.r7, 6) + "   \n"
+        string += "     C:" + str(self.c) + " V:" + str(self.v)
+        string += " Z:" + str(self.z)
+        string += " N:" + str(self.n) + " T:" + str(self.t) + " I:"
+        string += "{0:#0{1}d}".format(self.i, 3) + "\n\n"
+        string += "      Time  = " + "{0:#0{1}d}".format(self.time, 13)
+        string += " us\n"
+        string += "      Cycle = " + "{0:#0{1}d}".format(self.time, 13)
+        string += " cyc\n"
+
+        statebuffer2.set_text(string)
+
+    def fetch_state(self):
+        pass
+
 class SourceCode():
 
     def __init__(self, textview, server):
-        self.code = dict(((i, ["HALT", 2]) for i in range (0, 0xE000)))
+        self.code = dict(((i, ["HALT", 2, 0]) for i in range (0, 0xE000)))
         self.textview = textview
         self.server = server
 
     def fetch_code(self, start, end):
         count = start
         while (count < end):
+            comm, size, b = self.code[count]
             command, size = self.server.em_recv_command(count)
-            self.code[count] = command, size
+            self.code[count] = command, size, b
             count += size
 
-    def show_rom(self):
-        count = 0
+    def show_rom(self, start):
+        self.frame_start = start
+        count = start
+        end = start + 0x32 #Maximum screen line
+        self.frame_end = end
         string = ""
-        while (count < 0xE000):
-            command, size = self.code[count]
+        while (count <= end):
+            try:
+                command, size, b = self.code[count]
+            except:
+                command = "Out of range"
+                size = 2
+            if (b == 1):
+                string += u"\u25CF" + " "
+            else:
+                string += "  "
             string += "{0:#0{1}x}".format(count, 6)
             string += "        "
             string += command.replace("\n", "") + "\n"
@@ -33,6 +91,41 @@ class SourceCode():
         textbuffer.set_text(string)
 
     def show_cur_line(self, address):
+        if (address < self.frame_start or address > self.frame_end):
+            self.show_rom(address)
+
+        count = self.frame_start
+        string = ""
+        while (count <= self.frame_end):
+            try:
+                command, size, b = self.code[count]
+            except:
+                command = "Out of range"
+                size = 2
+            if (b == 1):
+                string += u"\u25CF" + " "
+            else:
+                string += "  "
+            string += "{0:#0{1}x}".format(count, 6)
+            if (count == address):
+                string += " >>>>>> "
+            else:
+                string += "        "
+            string += command.replace("\n", "") + "\n"
+            count += size
+        textbuffer = self.textview.get_buffer()
+        textbuffer.set_text(string)
+
+    def toggle_break(self, address):
+        try:
+            command, size, b = self.code[address]
+        except:
+            return
+        if (b == 0):
+            b = 1
+        else:
+            b = 0
+        self.code[address] = command, size, b
 
 class Server():
     def __init__(self):
@@ -102,7 +195,7 @@ class Emulator(Gtk.Window):
             dialog.run()
             dialog.destroy()
             sys.exit(1)
-        self.curr_address = 0x0000
+        self.current_addr = 0x0000
 
     def create_toolbar(self):
         toolbar = Gtk.Toolbar()
@@ -156,6 +249,8 @@ class Emulator(Gtk.Window):
         self.scrolledwindow = Gtk.ScrolledWindow()
         self.scrolledwindow.set_hexpand(True)
         self.scrolledwindow.set_vexpand(True)
+        self.scrolledwindow.set_policy(Gtk.PolicyType.NEVER,
+                                       Gtk.PolicyType.NEVER)
         self.scrolledwindow.set_shadow_type(Gtk.ShadowType.IN)
         self.grid.attach_next_to(self.scrolledwindow, self.toolbar,
                                  Gtk.PositionType.BOTTOM, 1, 2)
@@ -168,23 +263,11 @@ class Emulator(Gtk.Window):
 
         self.scrolledwindow.add(self.textview)
 
-        self.tag_breakpoint = self.textbuffer.create_tag("breakpoint",
-            background="red")
-
     def create_stateviewer(self):
         viewer = Gtk.TextView()
         self.grid.attach(viewer, 1, 1, 2, 1)
 
         self.stateview = Gtk.TextView()
-        self.statebuffer2 = self.stateview.get_buffer()
-        self.statebuffer2.set_text("\n  |> R0 = 0x0000 <|> R1 = 0x0000 <|\n"
-                                   "  |> R2 = 0x0000 <|> R3 = 0x0000 <|\n"
-                                   "  |> R4 = 0x0000 <|> R5 = 0x0000 <|\n"
-                                   "  |> R6 = 0x0000 <|> R7 = 0x0000 <|\n"
-                                   "  |>    C = 0 | V = 0 | Z = 0    <|\n"
-                                   "  |>    N = 0 | T = 0 | I = 0    <|\n"
-                                   "  |>  Time  = 0000000000000 mcs  <|\n"
-                                   "  |>  Cycle = 0000000000000 cyc  <|\n")
         self.stateview.set_editable(True)
         self.stateview.modify_font(Pango.FontDescription('Monospace 18'))# OK
         self.stateview.set_cursor_visible(False)
@@ -232,10 +315,13 @@ class Emulator(Gtk.Window):
 
         self.server.em_send_load_file(self.binary_full_name)
         self.disasm = SourceCode(self.textview, self.server)
-        self.disasm.fetch_code(0x0000, 0x0004)
-        self.current_addr = 0
-        self.disasm.show_rom()
+        #self.disasm.fetch_code(0x0000, 0x0004)
+        self.current_addr = 0x0000
+        self.disasm.show_rom(self.current_addr)
         self.disasm.show_cur_line(self.current_addr)
+
+        self.mstate = MachineState(self.stateview, self.server)
+        self.mstate.show_state()
 
     def button_next_clicked(self, widget):
         self.current_addr += 2
@@ -247,17 +333,14 @@ class Emulator(Gtk.Window):
         except:
             return
 
-        if (start.get_line_offset() != 0 or end.get_line_offset() != 6):
+        # Check that address was selected
+        if (start.get_line_offset() != 2 or end.get_line_offset() != 8):
             return
 
-        for i in self.breakpoint_list:
-            if i[0].get_line() == start.get_line():
-                self.textbuffer.remove_tag(self.tag_breakpoint, i[0], i[1])
-                self.breakpoint_list.remove([i[0], i[1]]);
-                return
+        address = int(start.get_text(end), 16)
 
-        self.breakpoint_list.append([start, end]);
-        self.textbuffer.apply_tag(self.tag_breakpoint, start, end)
+        self.disasm.toggle_break(address)
+        self.disasm.show_cur_line(self.current_addr)
 
 # Main interaction
 pdp_emul = Emulator()
