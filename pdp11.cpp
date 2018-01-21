@@ -11,6 +11,7 @@ int PDP11::reset() {
        mem.reset();
        vram_mode = 0;
        timer = 0;
+       return 0;
 }
 
 int PDP11::op_addr(Instruction i, uint32_t* addr, int n) {
@@ -122,8 +123,32 @@ int PDP11::op_addr(Instruction i, uint32_t* addr, int n) {
                         ret += mem.read((temp1 + temp2) & 0xFFFF, addr);
                         return ret;
                 default:
+                        abort();
                         break;
            }
+        return -1;
+}
+
+int PDP11::interrupt(int type) {
+        uint16_t handler;
+        uint16_t pc;
+        uint16_t sp;
+        if (type == IILL) {
+                 mem.read(010, &handler);
+        } else if (type == IFAULT) {
+                 mem.read(004, &handler);
+        } else if (type == IEMT) {
+                 mem.read(030, &handler);
+        } else if (type == IIOT) {
+                 mem.read(020, &handler);
+        }
+
+        mem.read(MEM_SIZE + 12, &sp);
+        mem.read(MEM_SIZE + 14, &pc);
+        mem.write(sp, &pc);
+        mem.write(MEM_SIZE + 14, &handler);
+        mem.incr(MEM_SIZE + 12, -2);
+        return 0;
 }
 
 int PDP11::load(uint8_t* code, size_t size) {
@@ -143,6 +168,7 @@ int PDP11::exec() {
         uint32_t ea2 = -1;
         uint16_t tmp1 = -1;
         uint16_t tmp2 = -1;
+        long res = -1;
 
         ret += mem.read(MEM_SIZE + 14, &pc);
         ret += mem.read(pc, ins);
@@ -238,8 +264,26 @@ int PDP11::exec() {
                         psw_value(tmp1);
                         _psw.psw.v = 0;
                         break;
-                default:
+                case CMP:
+                        ret += op_addr(cur, &ea1, 2);
+                        ret += mem.read(ea1, &tmp1);
+                        ret += op_addr(cur, &ea2, 1);
+                        ret += mem.read(ea2, &tmp2);
+                        res = (long) tmp1 - (long) tmp2;
+                        _psw.psw.z = !!res;
+                        _psw.psw.n = (res < 0);
+                        _psw.psw.v = (res > 0xFFFF || res < 0xFFFF);
+                        _psw.psw.c = (res & (1<<15));
                         break;
+
+                default:
+                        interrupt(IILL);
+                        break;
+        }
+
+        if (mem.get_violation() == true) {
+                mem.set_violation(false);
+                interrupt(IFAULT);
         }
 
         return ret;

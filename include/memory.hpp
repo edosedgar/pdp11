@@ -10,18 +10,18 @@
 //#include"pdp11.hpp"
 
 //namespace PDP11 {
-#define ROM_SIZE 0x8000
+#define ROM_SIZE 0x6000
 #define VRAM_SIZE 0x4000
-#define RAM_SIZE 0x2000
+#define RAM_SIZE 0x4000
 #define IO_SIZE 0x2000
 
 #define MEM_SIZE ((uint32_t) 0x10000)
 
 typedef union {
         struct __attribute((packed))__ {
-                uint8_t rom[ROM_SIZE];
-                uint8_t vram[VRAM_SIZE];
                 uint8_t ram[RAM_SIZE];
+                uint8_t vram[VRAM_SIZE];
+                uint8_t rom[ROM_SIZE];
                 uint8_t io[IO_SIZE];
                 uint16_t regs[8];
         } map;
@@ -77,6 +77,7 @@ class Memory {
                         _violated = arg;
                 }
                 int rom_load(uint8_t* code, size_t size) {
+                        memset(_mem->map.rom, 0, ROM_SIZE);
                         memcpy(_mem->map.rom, code, size);
                         return 0;
                 }

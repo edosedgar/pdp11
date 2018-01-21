@@ -29,6 +29,12 @@ static void comp_check_func () {
         return;
 }
 
+enum Interrupts {
+        IILL = 0,
+        IFAULT,
+        IIOT,
+        IEMT
+};
 
 //namespace PDP11 {
 
@@ -104,6 +110,7 @@ private:
                 _psw.psw.n = res & (1 << 15);
                 return 0;
         }
+        int interrupt(int type);
 };
 
 //};

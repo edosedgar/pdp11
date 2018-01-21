@@ -1,5 +1,7 @@
 #include"memory.hpp"
 
+#define IS_ROM(x) ((RAM_SIZE + VRAM_SIZE) < x && x < (MEM_SIZE - IO_SIZE))
+
 Timings* Timings::_timings = 0;
 
 int Memory::read(uint32_t addr, uint32_t* dest) {
@@ -20,7 +22,7 @@ int Memory::write(uint32_t addr, uint32_t* src)
         {
                 return -EFAULT;
         }
-        if (addr < ROM_SIZE) {
+        if (IS_ROM(addr)) {
                 _violated = true;
                 return Timings::timings()->get_mem_r();
         }
@@ -50,7 +52,7 @@ int Memory::write(uint32_t addr, uint16_t* src)
         {
                 return -EFAULT;
         }
-        if (addr < ROM_SIZE) {
+        if (IS_ROM(addr)) {
                 _violated = true;
                 return Timings::timings()->get_mem_r();
         }
