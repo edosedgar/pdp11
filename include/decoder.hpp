@@ -213,7 +213,158 @@ class Instruction {
         int _bit;
         size_t _size; //In words
         InstrRaw _offsets[2];
+        std::string get_str()
+        {
+                if (_type == -1) {
+                        return std::string("ERROR");
+                }
+                std::string ret(instruction_set[_type]);
+                if (_op1 == -1) {
+                        return ret;
+                }
+                if (_bit == 1) {
+                        ret += "B ";
+                } else {
+                        ret += " ";
+                }
+                std::string op1("");
+                if (_mod1 != -1) {
+                                            //fprintf(stderr, "!!!!! %u\n", _op1);
+                        if (_op1 == 07) {
+                                if (_mod1 == R7IMM) {
+                                        op1 += "#";
+                                } else if (_mod1 == R7ABS) {
+                                        op1 += "@#";
+                                } else if (_mod1 == R7RELD) {
+                                        op1 += "";
+                                } else if (_mod1 == R7RELI) {
+                                        op1 += "@";
+                                }
+                                op1 += std::to_string(_offsets[_size - 1].raw);
+                                _size++;
+                        } else {
+                                switch (_mod1) {
+                                        case MREG:
+                                             op1 += "R";
+                                             op1 += std::to_string(_op1);
+                                             break;
+                                        case MREGI:
+                                             op1 += "@R";
+                                             op1 += std::to_string(_op1);
+                                             break;
+                                        case MINC:
+                                            op1 += "(R";
+                                            op1 += std::to_string(_op1);
+                                            op1 += ")+";
+                                            break;
+                                        case MINCI:
+                                            op1 += "@(R";
+                                            op1 += std::to_string(_op1);
+                                            op1 += ")+";
+                                            break;
+                                        case MDEC:
+                                            op1 += "-(R";
+                                            op1 += std::to_string(_op1);
+                                            op1 += ")";
+                                            break;
+                                        case MDECI:
+                                            op1 += "-@(R";
+                                            op1 += std::to_string(_op1);
+                                            op1 += ")";
+                                            break;
+                                        case MIND:
+                                            op1 += "n(R";
+                                            op1 += std::to_string(_op1);
+                                            op1 += ")";
+                                            break;
+                                        case MINDI:
+                                            op1 += "@n(R";
+                                            op1 += std::to_string(_op1);
+                                            op1 += ")";
+                                            break;
+                                        default:
+                                             break;
+                                 }
+                        }
+                } else {
+                        op1 += "R";
+                        op1 += std::to_string(_op1);
+                }
+
+                ret += op1;
+
+                if (_op2 == -1) {
+                        return ret;
+                }                   
+                std::string op2("");
+                if (_mod2 != -1) {
+                        if (_op2 == 07) {
+                                if (_mod2 == R7IMM) {
+                                        op2 += "#";
+                                } else if (_mod2 == R7ABS) {
+                                        op2 += "@#";
+                                } else if (_mod2 == R7RELD) {
+                                        op2 += "";
+                                } else if (_mod2 == R7RELI) {
+                                        op2 += "@";
+                                }
+                                op2 += std::to_string(_offsets[_size - 1].raw);
+                                _size++;
+                        } else {
+                                switch (_mod2) {
+                                        case MREG:
+                                             op2 += "R";
+                                             op2 += std::to_string(_op2);
+                                             break;
+                                        case MREGI:
+                                             op2 += "@R";
+                                             op2 += std::to_string(_op2);
+                                             break;
+                                        case MINC:
+                                            op2 += "(R";
+                                            op2 += std::to_string(_op2);
+                                            op2 += ")+";
+                                            break;
+                                        case MINCI:
+                                            op2 += "@(R";
+                                            op2 += std::to_string(_op2);
+                                            op2 += ")+";
+                                            break;
+                                        case MDEC:
+                                            op2 += "-(R";
+                                            op2 += std::to_string(_op2);
+                                            op2 += ")";
+                                            break;
+                                        case MDECI:
+                                            op2 += "-@(R";
+                                            op2 += std::to_string(_op2);
+                                            op2 += ")";
+                                            break;
+                                        case MIND:
+                                            op2 += "n(R";
+                                            op2 += std::to_string(_op2);
+                                            op2 += ")";
+                                            break;
+                                        case MINDI:
+                                            op2 += "@n(R";
+                                            op2 += std::to_string(_op2);
+                                            op2 += ")";
+                                            break;
+                                        default:
+                                             break;
+                                 }
+                        }
+             } else {
+                        op2 += "R";
+                        op2 += std::to_string(_op2);
+             }
+             ret += " ";
+             ret += op2;
+             return ret;
+ 
+        }
         public:
+        std::string str;
         Instruction(InstrRaw* arr, size_t n)
         {
                 _type = -1;
@@ -253,6 +404,7 @@ class Instruction {
                                 break;
                 }
                 if (_type != -1) {
+                        str = get_str();
                         return;
                 }
                 switch (instr_raw.one_op.opcode) {
@@ -361,6 +513,7 @@ class Instruction {
                  }
 
                 if (_type != -1) {
+                        str = get_str();
                         return;
                 }
 
@@ -399,7 +552,7 @@ class Instruction {
                                 _mod1 = instr_raw.oneh_op.mod;
                                 _op2 = instr_raw.oneh_op.reg;
                                 break;
-                        case 0007:
+                        case 0004:
                                 _type = JSR;
                                 _op1 = instr_raw.oneh_op.op;
                                 _mod1 = instr_raw.oneh_op.mod;
@@ -416,6 +569,7 @@ class Instruction {
                                 break;
                  }
                 if (_type != -1) {
+                        str = get_str();
                         return;
                 }
 
@@ -478,6 +632,7 @@ class Instruction {
                                 break;
                 }
                 if (_type != -1) {
+                        str = get_str();
                         return;
                 }
                 switch (instr_raw.branch.opcode) {
@@ -545,6 +700,7 @@ class Instruction {
                                 break;
                 }
                 if (_type != -1) {
+                        str = get_str();
                         return;
                 }
                 switch (instr_raw.h_op.opcode) {
@@ -555,156 +711,10 @@ class Instruction {
                         default:
                                 break;
                 }
+                str = get_str();
            }
-           std::string get_str()
-           {
-                   if (_type == -1) {
-                           return std::string("ERROR");
-                   }
-                   std::string ret(instruction_set[_type]);
-                   if (_op1 == -1) {
-                           return ret;
-                   }
-                   if (_bit == 1) {
-                           ret += "B ";
-                   } else {
-                           ret += " ";
-                   }
-                   std::string op1("");
-                   if (_mod1 != -1) {
-                                               //fprintf(stderr, "!!!!! %u\n", _op1);
-                           if (_op1 == 07) {
-                                   if (_mod1 == R7IMM) {
-                                           op1 += "#";
-                                   } else if (_mod1 == R7ABS) {
-                                           op1 += "@#";
-                                   } else if (_mod1 == R7RELD) {
-                                           op1 += "";
-                                   } else if (_mod1 == R7RELI) {
-                                           op1 += "@";
-                                   }
-                                   op1 += std::to_string(_offsets[_size - 1].raw);
-                                   _size++;
-                           } else {
-                                   switch (_mod1) {
-                                           case MREG:
-                                                op1 += "R";
-                                                op1 += std::to_string(_op1);
-                                                break;
-                                           case MREGI:
-                                                op1 += "@R";
-                                                op1 += std::to_string(_op1);
-                                                break;
-                                           case MINC:
-                                               op1 += "(R";
-                                               op1 += std::to_string(_op1);
-                                               op1 += ")+";
-                                               break;
-                                           case MINCI:
-                                               op1 += "@(R";
-                                               op1 += std::to_string(_op1);
-                                               op1 += ")+";
-                                               break;
-                                           case MDEC:
-                                               op1 += "-(R";
-                                               op1 += std::to_string(_op1);
-                                               op1 += ")";
-                                               break;
-                                           case MDECI:
-                                               op1 += "-@(R";
-                                               op1 += std::to_string(_op1);
-                                               op1 += ")";
-                                               break;
-                                           case MIND:
-                                               op1 += "n(R";
-                                               op1 += std::to_string(_op1);
-                                               op1 += ")";
-                                               break;
-                                           case MINDI:
-                                               op1 += "@n(R";
-                                               op1 += std::to_string(_op1);
-                                               op1 += ")";
-                                               break;
-                                           default:
-                                                break;
-                                    }
-                           }
-                   } else {
-                           op1 += "R";
-                           op1 += std::to_string(_op1);
-                   }
-
-                   ret += op1;
-
-                   if (_op2 == -1) {
-                           return ret;
-                   }                   
-                   std::string op2("");
-                   if (_mod2 != -1) {
-                           if (_op2 == 07) {
-                                   if (_mod2 == R7IMM) {
-                                           op2 += "#";
-                                   } else if (_mod2 == R7ABS) {
-                                           op2 += "@#";
-                                   } else if (_mod2 == R7RELD) {
-                                           op2 += "";
-                                   } else if (_mod2 == R7RELI) {
-                                           op2 += "@";
-                                   }
-                                   op2 += std::to_string(_offsets[_size - 1].raw);
-                                   _size++;
-                           } else {
-                                   switch (_mod2) {
-                                           case MREG:
-                                                op2 += "R";
-                                                op2 += std::to_string(_op2);
-                                                break;
-                                           case MREGI:
-                                                op2 += "@R";
-                                                op2 += std::to_string(_op2);
-                                                break;
-                                           case MINC:
-                                               op2 += "(R";
-                                               op2 += std::to_string(_op2);
-                                               op2 += ")+";
-                                               break;
-                                           case MINCI:
-                                               op2 += "@(R";
-                                               op2 += std::to_string(_op2);
-                                               op2 += ")+";
-                                               break;
-                                           case MDEC:
-                                               op2 += "-(R";
-                                               op2 += std::to_string(_op2);
-                                               op2 += ")";
-                                               break;
-                                           case MDECI:
-                                               op2 += "-@(R";
-                                               op2 += std::to_string(_op2);
-                                               op2 += ")";
-                                               break;
-                                           case MIND:
-                                               op2 += "n(R";
-                                               op2 += std::to_string(_op2);
-                                               op2 += ")";
-                                               break;
-                                           case MINDI:
-                                               op2 += "@n(R";
-                                               op2 += std::to_string(_op2);
-                                               op2 += ")";
-                                               break;
-                                           default:
-                                                break;
-                                    }
-                           }
-                } else {
-                           op2 += "R";
-                           op2 += std::to_string(_op2);
-                }
-                ret += " ";
-                ret += op2;
-                return ret;
- 
+           size_t get_size() {
+                   return _size;
            }
 };
 
