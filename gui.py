@@ -5,6 +5,7 @@ gi.require_version('Gtk', '3.0')
 gi.require_version('PangoCairo', '1.0')
 from gi.repository import Gtk, Gdk, Pango, GObject, cairo, PangoCairo
 import socket, sys
+import os
 
 class MachineState():
 
@@ -61,8 +62,8 @@ class SourceCode():
 
     def fetch_code(self, start, end):
         count = start
-        while (count < end):
-            comm, size, b = self.code[count]
+        while (count <= end):
+            comm, s, b = self.code[count]
             command, size = self.server.em_recv_command(count)
             self.code[count] = command, size, b
             count += size
@@ -73,6 +74,7 @@ class SourceCode():
         end = start + 0x32 #Maximum screen line
         self.frame_end = end
         string = ""
+        self.fetch_code(start, end) #Read ROM
         while (count <= end):
             try:
                 command, size, b = self.code[count]
@@ -143,24 +145,22 @@ class Server():
             return "err"
 
     def em_send_init_gui(self):
-        self.channel.send("em_init_gui")
+        self.channel.send("em_init_gui\0")
         return self.em_recv_reply()
 
     def em_send_load_file(self, file_path):
-        self.channel.send("em_load_file")
+        f = open(file_path,'r')
+        size = os.path.getsize(file_path);
+        self.channel.send("em_load_file " + str(size))
         reply = self.em_recv_reply()
-        if reply == "ok":
-            self.channel.send(file_path)
-        else:
-            return "err"
+        self.channel.send(f.read(size))
         return self.em_recv_reply()
 
     def em_recv_command(self, address):
-        self.channel.send("em_get_command")
-        self.channel.send(str(address))
+        self.channel.send("em_get_command " + str(address))
         command = self.channel.recv(256)
-        size = int(self.channel.recv(256))
-        self.channel.send("ok")
+        size = int(command[0])
+        command = command[2:]
         return command, size
 
     def receive(self):
@@ -311,11 +311,13 @@ class Emulator(Gtk.Window):
         response = fc.run()
         if response == Gtk.ResponseType.OK:
             self.binary_full_name = fc.get_filename()
+        else:
+            fc.destroy()
+            return
         fc.destroy()
 
         self.server.em_send_load_file(self.binary_full_name)
         self.disasm = SourceCode(self.textview, self.server)
-        #self.disasm.fetch_code(0x0000, 0x0004)
         self.current_addr = 0x0000
         self.disasm.show_rom(self.current_addr)
         self.disasm.show_cur_line(self.current_addr)
