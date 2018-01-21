@@ -39,7 +39,7 @@ class GUI_channel
         unsigned int current_address = 0;
         unsigned int emul_address = 0;
         unsigned int eff_bin_size = 0;
-        uint8_t *binary;
+        uint16_t *binary;
         int byte_rec;
 public:
         GUI_channel() {
@@ -49,7 +49,7 @@ public:
                 int yes = 1;
                 socklen_t size;
                 current_state = REQUEST_DONE;
-                binary = new uint8_t[32768];
+                binary = new uint16_t[12288]();
 
                 std::cout << "\n- Starting server..." << std::endl;
                 server = socket(AF_INET, SOCK_STREAM, 0);
@@ -91,8 +91,8 @@ public:
                 send(client, &buffer, 1, 0);
         }
         void process_request() {
-                //if (current_state != REQUEST_DONE)
-                //        goto skip_first;
+                if (current_state != REQUEST_DONE)
+                        goto skip_first;
                 if (strstr(buffer, "em_init_gui")) {
                         answer_ok();
                         std::cerr << ">> GUI started \n";
@@ -100,11 +100,12 @@ public:
                         return;
                 }
                 if (strstr(buffer, "em_load_file")) {
-                        answer_ok();
                         sscanf(buffer, "em_load_file %u", &eff_bin_size);
                         current_state = BINARY_RECEIVE;
+                        answer_ok();
                         std::cerr << ">> GUI is going to send bin \n";
                         memset(buffer, 0, 256);
+                        byte_rec = 0;
                         return;
                 }
                 if (strstr(buffer, "em_get_command")) {
@@ -125,13 +126,6 @@ public:
                 }
 skip_first:
                 switch (current_state) {
-                case BINARY_PATH_WAIT:
-                        strcpy(bin_path, buffer);
-                        current_state = BINARY_PATH_ACCEPTED;
-                        answer_ok();
-                        std::cerr << "GUI has sent filename:  \n";
-                        std::cerr << bin_path << "\n";
-                        break;
                 case COMMAND_SENDING:
                         strcpy(buffer, "2 MOV R1, R2");
                         send(client, &buffer, strlen(buffer), 0);
@@ -141,10 +135,9 @@ skip_first:
                         break;
                 case BINARY_RECEIVE:
                         memcpy(binary + byte_rec, buffer, 256);
-                        byte_rec += 256;
-                        if (byte_rec >= eff_bin_size) {
+                        byte_rec += 128;
+                        if (byte_rec * 2 >= eff_bin_size) {
                                 current_state = REQUEST_DONE;
-                                std::cerr << binary << "\n";
                                 answer_ok();
                         }
                         break;
