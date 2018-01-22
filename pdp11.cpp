@@ -208,6 +208,14 @@ int PDP11::exec() {
                         _psw.psw.c = 0;
                         _psw.psw.z = 1;
                         break;
+                case NEG:
+                        ret += op_addr(cur, &ea1, 1);
+                        tmp1 = ((uint16_t) -((int16_t) tmp1));
+                        ret += mem.write(ea1, &tmp1);
+                        psw_value(tmp1);
+                        _psw.psw.v = (tmp1 == 0100000);
+                        _psw.psw.c = !!tmp1;
+                        break;
                 case INC:
                         ret += op_addr(cur, &ea1, 1);
                         ret += mem.read(ea1, &tmp1);
