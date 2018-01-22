@@ -257,7 +257,7 @@ class Emulator(Gtk.Window):
         button_reset.set_icon_name("system-shutdown")
         button_reset.set_label("Reset");
         button_reset.set_is_important(True)
-        button_reset.connect("clicked", self.button_reset_clicked)
+        #button_reset.connect("clicked", self.button_reset_clicked)
         toolbar.insert(button_reset, 4)
 
         button_next = Gtk.ToolButton()
@@ -362,8 +362,10 @@ class Emulator(Gtk.Window):
         comm, size, b = self.disasm.code[self.current_addr]
         self.current_addr += size
         cycle = self.server.em_send_step()
-        self.mstate.add_emul_time(int(cycle))
         print "Cycle" + cycle
+        if (int(cycle) == -1)
+            return
+        self.mstate.add_emul_time(int(cycle))
         self.disasm.show_cur_line(self.current_addr)
         self.mstate.show_state()
 

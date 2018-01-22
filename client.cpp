@@ -136,9 +136,13 @@ public:
                 }
                 if (strstr(buffer, "em_make_step")) {
                         int cycle = pdp->exec();
+                        if (pdp.get_state() == HALTED) {
+                                cycle = -1;
+                        }
                         std::stringstream ss;
                         ss << cycle;
                         std::string str = ss.str();
+
 
                         strcpy(buffer, str.c_str());
                         send(client, &buffer, strlen(buffer), 0);
