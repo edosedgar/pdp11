@@ -17,7 +17,10 @@ startup.bin: startup.S
 	$(AS) $^ -o startup.o
 	$(OBJCOPY) -O binary startup.o $@
 
-bios: bios.o startup.o linker.T
+bios: bios.out
+	$(OBJCOPY) -O binary bios.out $@
+
+bios.out: bios.o startup.o linker.T
 	$(LD) -nostdlib -T linker.T -L${C_PREFIX}/../lib/gcc/pdp11-aout/6.4.0/ -o $@
 
 startup.o: startup.S
