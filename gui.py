@@ -220,6 +220,7 @@ class Emulator(Gtk.Window):
         self.set_resizable(False)
 
         self.logo = 1
+        self.disp_lock = 0
         self.grid = Gtk.Grid()
         self.add(self.grid)
 
@@ -334,6 +335,8 @@ class Emulator(Gtk.Window):
         return True
 
     def display_render(self, widget, cr):
+        if (self.disp_lock):
+            return
         cr.set_source_rgb(0.0, 0.0, 0.0)
         cr.rectangle(0,0,512,512);
         cr.fill()
@@ -411,6 +414,9 @@ class Emulator(Gtk.Window):
         self.mstate.add_emul_time(cycle)
         self.disasm.show_cur_line(self.current_addr)
         self.mstate.show_state()
+        self.disp_lock = 1
+        self.pixdata = self.server.em_recv_disp()
+        self.disp_lock = 0
 
     def toggle_b_clicked(self, widget):
         try:

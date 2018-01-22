@@ -159,14 +159,12 @@ public:
                         return;
                 }
                 if (strstr(buffer, "em_get_vram")) {
-                        //
-                        //
-                        send(client, &buffer, 8192, 0);
+                        uint8_t *vram = pdp->get_vram();
+                        send(client, vram, 8192, 0);
                         std::cerr << ">> GUI requsted display state \n";
+                        memset(buffer, 0, 256);
                         return;
                 }
-                if (strstr(buffer, "em_get_vram")) {
-                        send
 skip_first:
                 switch (current_state) {
                 case COMMAND_SENDING: {
