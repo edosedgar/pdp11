@@ -74,7 +74,7 @@ public:
                 mem.read(addr + 2, ins + 2);
                 Instruction cur = dec.decode(ins, 3);
                 std::string out = std::string("");
-                out += std::to_string(addr);
+                out += std::to_string(2 * cur.get_size());
                 out += " ";
                 out += cur.str;
                 return out;
@@ -89,7 +89,7 @@ public:
         }
 private:
         Decoder dec;
-        Memory mem;        
+        Memory mem;
         unsigned _state;
         uint64_t timer;
         int vram_mode;

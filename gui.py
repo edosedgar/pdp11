@@ -30,6 +30,7 @@ class MachineState():
         self.time = 0
 
     def show_state(self):
+        self.fetch_state()
         statebuffer2 = self.stateview.get_buffer()
         string = "\n R0:" + "{0:#0{1}x}".format(self.r0, 6) + "    "
         string += "R1:" + "{0:#0{1}x}".format(self.r1, 6) + "   "
@@ -51,7 +52,27 @@ class MachineState():
         statebuffer2.set_text(string)
 
     def fetch_state(self):
-        pass
+        regs = self.server.em_recv_state();
+        regs_list = regs.split();
+        self.r0 = int(regs_list[0][3:])
+        self.r1 = int(regs_list[1][3:])
+        self.r2 = int(regs_list[2][3:])
+        self.r3 = int(regs_list[3][3:])
+        self.r4 = int(regs_list[4][3:])
+        self.r5 = int(regs_list[5][3:])
+        self.r6 = int(regs_list[6][3:])
+        self.r7 = int(regs_list[7][3:])
+        psw = int(regs_list[8][4:])
+        self.c = psw & 0x01
+        self.v = psw & 0x02 >> 1
+        self.z = psw & 0x04 >> 2
+        self.n = psw & 0x08 >> 3
+        self.t = psw & 0x10 >> 4
+        self.i = psw & 0xE0 >> 5
+        print regs_list
+
+    def add_emul_time(self, new_cycle):
+        self.cycle += new_cycle
 
 class SourceCode():
 
@@ -62,7 +83,7 @@ class SourceCode():
 
     def fetch_code(self, start, end):
         count = start
-        while (count <= end):
+        while (count <= end + 1):
             comm, s, b = self.code[count]
             command, size = self.server.em_recv_command(count)
             self.code[count] = command, size, b
@@ -162,6 +183,16 @@ class Server():
         size = int(command[0])
         command = command[2:]
         return command, size
+
+    def em_recv_state(self):
+        self.channel.send("em_get_state")
+        regs = self.channel.recv(256)
+        return regs
+
+    def em_send_step(self):
+        self.channel.send("em_make_step")
+        cycle = self.channel.recv(256)
+        return cycle
 
     def receive(self):
         data = channel.recv(message)
@@ -318,7 +349,8 @@ class Emulator(Gtk.Window):
 
         self.server.em_send_load_file(self.binary_full_name)
         self.disasm = SourceCode(self.textview, self.server)
-        self.current_addr = 0x0000
+        # ROM initial address
+        self.current_addr = 0x8000
         self.disasm.show_rom(self.current_addr)
         self.disasm.show_cur_line(self.current_addr)
 
@@ -326,8 +358,12 @@ class Emulator(Gtk.Window):
         self.mstate.show_state()
 
     def button_next_clicked(self, widget):
-        self.current_addr += 2
+        comm, size, b = self.disasm.code[self.current_addr]
+        self.current_addr += size
+        cycle = self.server.em_send_step()
+        self.mstate.add_emul_time(int(cycle))
         self.disasm.show_cur_line(self.current_addr)
+        self.mstate.show_state()
 
     def toggle_b_clicked(self, widget):
         try:

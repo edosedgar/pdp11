@@ -10,10 +10,11 @@
 #include <poll.h>
 #include <sstream>
 #include <iomanip>
+#include "pdp11.hpp"
 
 // States after requests
 
-enum state {
+enum state_enum {
         INITIAL_STATE = 0,
         BINARY_PATH_WAIT,
         BINARY_PATH_ACCEPTED,
@@ -41,6 +42,7 @@ class GUI_channel
         unsigned int eff_bin_size = 0;
         uint16_t *binary;
         int byte_rec;
+        PDP11 *pdp;
 public:
         GUI_channel() {
                 port = 6700;
@@ -110,7 +112,6 @@ public:
                 }
                 if (strstr(buffer, "em_get_command")) {
                         unsigned int com_adr;
-
                         sscanf(buffer, "em_get_command %u", &com_adr);
                         std::stringstream ss;
 
@@ -124,26 +125,54 @@ public:
                         memset(buffer, 0, 256);
                         return;
                 }
+                if (strstr(buffer, "em_get_state")) {
+                        std::string cm = pdp->info_registers();
+                        strcpy(buffer, cm.c_str());
+                        send(client, &buffer, strlen(buffer), 0);
+                        current_state = REQUEST_DONE;
+                        std::cerr << "GUI received machine state \n";
+                        memset(buffer, 0, 256);
+                        return;
+                }
+                if (strstr(buffer, "em_make_step")) {
+                        int cycle = pdp->exec();
+                        std::stringstream ss;
+                        ss << cycle;
+                        std::string str = ss.str();
+
+                        strcpy(buffer, str.c_str());
+                        send(client, &buffer, strlen(buffer), 0);
+                        send(client, &buffer, strlen(buffer), 0);
+                        std::cerr << "GUI requsted step \n";
+                        memset(buffer, 0, 256);
+                }
 skip_first:
                 switch (current_state) {
-                case COMMAND_SENDING:
-                        strcpy(buffer, "2 MOV R1, R2");
+                case COMMAND_SENDING: {
+                        std::string cm = pdp->info_instruction(current_address);
+                        strcpy(buffer, cm.c_str());
                         send(client, &buffer, strlen(buffer), 0);
                         current_state = REQUEST_DONE;
                         std::cerr << "GUI received command \n";
                         memset(buffer, 0, 256);
                         break;
+                }
                 case BINARY_RECEIVE:
                         memcpy(binary + byte_rec, buffer, 256);
                         byte_rec += 128;
                         if (byte_rec * 2 >= eff_bin_size) {
                                 current_state = REQUEST_DONE;
                                 answer_ok();
+                                start_machine();
                         }
                         break;
                 default:
                         break;
                 }
+        }
+        void start_machine() {
+                pdp = new PDP11;
+                pdp->load((uint8_t*) binary, eff_bin_size);
         }
 };
 
