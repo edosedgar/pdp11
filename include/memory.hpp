@@ -85,6 +85,13 @@ class Memory {
                         memcpy(_mem->map.rom, code, size);
                         return 0;
                 }
+                int get_dirty() {
+                        if (_vram_dirty == true) {
+                                _vram_dirty = false;
+                                return true;
+                        }
+                        return false;
+                }
 };
 
 //};

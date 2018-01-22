@@ -114,6 +114,10 @@ private:
                 _psw.psw.n = !!(res & (1 << 15));
                 return 0;
         }
+        int get_dirty()
+        { 
+                returm mem.get_dirty();
+        }
         int interrupt(int type);
 };
 
