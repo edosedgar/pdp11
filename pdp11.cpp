@@ -256,6 +256,15 @@ int PDP11::exec() {
                         _psw.psw.v = _psw.psw.n + _psw.psw.c;
                         ret += mem.write(ea1, &tmp1);
                         break;
+                case TST:
+                        ret += op_addr(cur, &ea1, 1);
+                        ret += mem.read(ea1, &tmp1);
+                        ret++;
+                        _psw.psw.c = 0;
+                        _psw.psw.z = !!!tmp1;
+                        _psw.psw.n = !!(tmp1 & (1 << 15));
+                        _psw.psw.v = 0;
+                        break;
                 case MOV:
                         ret += op_addr(cur, &ea1, 2);
                         ret += mem.read(ea1, &tmp1);
@@ -402,13 +411,46 @@ int PDP11::exec() {
 branch:
                         ret++;
                 case BR:
-                        tmp1 = cur._op1 * 2;
+                        {
+                        int8_t tb = cur._op1;
                         ret += mem.read(MEM_SIZE + 14, &tmp2);
-                        tmp2 += tmp1;
+                        int sb = (int) tmp2;
+                        sb += tb * 2;
+                        tmp2 = sb;
                         ret += mem.write(MEM_SIZE + 14, &tmp2);
                         break;
+                        }
+                case JSR:
+                        {
+                        uint16_t sp;
+                        uint16_t old_pc;
+                        ret += op_addr(cur, &ea1, 1);
+                        ret += mem.read(ea1, &tmp1);
+                        ret += mem.read(MEM_SIZE + cur._op2  * 2, &tmp2);
+                        ret += mem.read(MEM_SIZE + 12, &sp);
+                        ret += mem.read(MEM_SIZE + 14, &old_pc);
 
-                default:
+                        ret += mem.write(sp, &tmp2);
+                        ret += mem.incr(MEM_SIZE + 12, -2);
+                        ret += mem.write(MEM_SIZE + cur._op2  * 2, &old_pc);
+
+                        ret += mem.write(MEM_SIZE + 14, &tmp1);
+                        }
+                        break;
+                case RTS:
+                        {
+                        uint16_t sp;
+                        uint16_t old_pc;
+                        ret += mem.read(MEM_SIZE + cur._op1  * 2, &tmp1);
+                        ret += mem.write(MEM_SIZE + 14, &tmp1);
+
+                        ret += mem.incr(MEM_SIZE + 12, 2);
+                        ret += mem.read(MEM_SIZE + 12, &sp);
+                        ret += mem.read(sp, &tmp2);
+                        ret += mem.write(MEM_SIZE + cur._op1  * 2, &tmp2);
+                        }
+                        break;
+                 default:
                         interrupt(IILL);
                         break;
         }

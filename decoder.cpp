@@ -498,8 +498,13 @@ std::string Instruction::get_str() {
                          }
                 }
         } else {
-                op1 += "R";
-                op1 += std::to_string(_op1);
+                if (BR <= _type && _type <= BLOS) {
+                        uint8_t t = _op1;
+                        op1 += std::to_string((int8_t) t);
+                } else {
+                        op1 += "R";
+                        op1 += std::to_string(_op1);
+                }
         }
 
         ret += op1;
@@ -552,12 +557,17 @@ std::string Instruction::get_str() {
                                     op2 += ")";
                                     break;
                                 case MIND:
-                                    op2 += "n(R";
+                                    op2 += std::to_string(_offsets[_size - 1].raw);
+                                    _size++;
+                                    op2 += "(R";
                                     op2 += std::to_string(_op2);
                                     op2 += ")";
                                     break;
                                 case MINDI:
-                                    op2 += "@n(R";
+                                    op2 += "@";
+                                    op2 += std::to_string(_offsets[_size - 1].raw);
+                                    _size++;
+                                    op2 += "(R";
                                     op2 += std::to_string(_op2);
                                     op2 += ")";
                                     break;
@@ -566,8 +576,8 @@ std::string Instruction::get_str() {
                          }
                 }
      } else {
-                op2 += "R";
-                op2 += std::to_string(_op2);
+             op2 += "R";
+             op2 += std::to_string(_op2);
      }
      ret += " ";
      ret += op2;
