@@ -165,6 +165,8 @@ public:
                         std::cerr << ">> GUI requsted display state \n";
                         return;
                 }
+                if (strstr(buffer, "em_get_vram")) {
+                        send
 skip_first:
                 switch (current_state) {
                 case COMMAND_SENDING: {

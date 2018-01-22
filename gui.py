@@ -1,9 +1,11 @@
 #!/usr/bin/python
 
+import cairo
 import gi
+import numpy
 gi.require_version('Gtk', '3.0')
 gi.require_version('PangoCairo', '1.0')
-from gi.repository import Gtk, Gdk, Pango, GObject, cairo, PangoCairo
+from gi.repository import Gtk, Gdk, Pango, GObject, PangoCairo
 import socket, sys
 import os
 
@@ -156,7 +158,6 @@ class Server():
     def __init__(self):
         self.TCP_IP = '127.0.0.1'
         self.TCP_PORT = 6700
-        BUFFER_SIZE = 1024
 
         self.channel = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.channel.connect((self.TCP_IP, self.TCP_PORT))
@@ -215,9 +216,10 @@ class Emulator(Gtk.Window):
     def __init__(self):
         Gtk.Window.__init__(self, title="PDP11 Emulator")
 
-        self.set_default_size(1024, 768)
+        self.set_default_size(1100, 768)
         self.set_resizable(False)
 
+        self.logo = 1
         self.grid = Gtk.Grid()
         self.add(self.grid)
 
@@ -237,6 +239,7 @@ class Emulator(Gtk.Window):
             dialog.destroy()
             sys.exit(1)
         self.current_addr = 0x0000
+        self.pixdata = [chr(0) for i in range(0, 8192)]
 
     def create_toolbar(self):
         toolbar = Gtk.Toolbar()
@@ -335,15 +338,40 @@ class Emulator(Gtk.Window):
         cr.rectangle(0,0,512,512);
         cr.fill()
 
-        layout = PangoCairo.create_layout (cr)
-        layout.set_text("No signal", -1)
-        desc = Pango.font_description_from_string ("Sans Bold 40")
-        layout.set_font_description(desc)
-        cr.set_source_rgb((self.invert % 255) / 256.0,(self.invert % 255)/256.0 ,(self.invert % 255.0)/256)
-        cr.move_to(130, 230)
-        PangoCairo.show_layout (cr, layout)
+        if (self.logo):
+            layout = PangoCairo.create_layout (cr)
+            layout.set_text("No signal", -1)
+            desc = Pango.font_description_from_string ("Sans Bold 40")
+            layout.set_font_description(desc)
+            cr.set_source_rgb((self.invert % 255) / 256.0,(self.invert % 255)/256.0 ,(self.invert % 255.0)/256)
+            cr.move_to(130, 230)
+            PangoCairo.show_layout (cr, layout)
 
-        self.invert = self.invert + 1
+            self.invert = self.invert + 1
+            return
+
+        cr.scale(2, 2)
+        cr.set_source_rgb(1.0, 1.0, 1.0)
+
+        for i in range(0, 8192):
+            if (ord(self.pixdata[i]) & 0x01):
+                cr.rectangle((i % 32) * 8 + 0, i / 32, 1, 1);
+            if (ord(self.pixdata[i]) & 0x02):
+                cr.rectangle((i % 32) * 8 + 1, i / 32, 1, 1);
+            if (ord(self.pixdata[i]) & 0x04):
+                cr.rectangle((i % 32) * 8 + 2, i / 32, 1, 1);
+            if (ord(self.pixdata[i]) & 0x08):
+                cr.rectangle((i % 32) * 8 + 3, i / 32, 1, 1);
+            if (ord(self.pixdata[i]) & 0x10):
+                cr.rectangle((i % 32) * 8 + 4, i / 32, 1, 1);
+            if (ord(self.pixdata[i]) & 0x20):
+                cr.rectangle((i % 32) * 8 + 5, i / 32, 1, 1);
+            if (ord(self.pixdata[i]) & 0x40):
+                cr.rectangle((i % 32) * 8 + 6, i / 32, 1, 1);
+            if (ord(self.pixdata[i]) & 0x80):
+                cr.rectangle((i % 32) * 8 + 7, i / 32, 1, 1);
+
+        cr.fill()
 
     def load_button_clicked(self, widget):
         fc = Gtk.FileChooserDialog("Open.." , self, Gtk.FileChooserAction.OPEN,
@@ -369,6 +397,7 @@ class Emulator(Gtk.Window):
 
         self.mstate = MachineState(self.stateview, self.server)
         self.mstate.show_state()
+        self.logo = 0
 
     def button_next_clicked(self, widget):
         if (self.halted == 1):
