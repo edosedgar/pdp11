@@ -7,8 +7,8 @@ _start:
         mov $0x8024, @$010 
         mov $0x8026, @$020 
         mov $0x8028, @$030 
-        #jsr r7, @_notmain
-        jsr r7, @$0x812c
+      #  jsr r7, @_notmain
+        jsr r7, @$0x8158
         halt
         .even
 #        .globl _time

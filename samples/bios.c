@@ -9,13 +9,17 @@ void delay(short time) {
 }
 
 void set_bit(short* vram, short x, short y) {
-        short old = *(vram + y * 16 + (x / 16));
+        short ind = y * 16 + (x / 16);
+        short old = *(vram + ind);
         short new = old | (1 << (x & 0x000F)); 
+        *(vram + ind)  = new;
 }
 
 void clr_bit(short* vram, short x, short y) {
-        short old = *(vram + y * 16 + (x / 16));
+        short ind = y * 16 + (x / 16);
+        short old = *(vram + ind);
         short new = old & ~(1 << (x & 0x000F)); 
+        *(vram + ind)  = new;
 }
 
 void notmain(void) {
