@@ -118,8 +118,9 @@ class SourceCode():
         textbuffer.set_text(string)
 
     def show_cur_line(self, address):
-        if (address < self.frame_start or address > self.frame_end):
-            self.show_rom(address)
+        if (address != -1):
+            if (address < self.frame_start or address > self.frame_end):
+                self.show_rom(address)
 
         count = self.frame_start
         string = ""
@@ -134,7 +135,7 @@ class SourceCode():
             else:
                 string += "  "
             string += "{0:#0{1}x}".format(count, 6)
-            if (count == address):
+            if (count == address and address != -1):
                 string += " >>>>> "
             else:
                 string += "       "
@@ -259,6 +260,7 @@ class Emulator(Gtk.Window):
         button_start.set_icon_name("media-playback-start")
         button_start.set_label("Run");
         button_start.set_is_important(True)
+        button_start.connect("clicked", self.start_button_clicked)
         toolbar.insert(button_start, 2)
 
         button_pause = Gtk.ToolButton()
@@ -445,6 +447,28 @@ class Emulator(Gtk.Window):
 
         self.mstate = MachineState(self.stateview, self.server)
         self.mstate.show_state()
+        self.disp_lock = 1
+        self.pixdata = self.server.em_recv_disp()
+        self.disp_lock = 0
+
+    def start_button_clicked(self, widget):
+        self.disasm.show_cur_line(-1)
+        while True:
+            self.current_addr, cycle = self.server.em_send_step()
+            if (cycle == -1):
+                self.set_title("PDP11 Emulator (HALTED)")
+                self.halted = 1
+                return
+            comm, size, b = self.disasm.code[self.current_addr]
+            if (b == 1):
+                self.disasm.show_cur_line(self.current_addr)
+                self.mstate.show_state()
+                return
+
+            self.mstate.add_emul_time(cycle)
+            self.disp_lock = 1
+            self.pixdata = self.server.em_recv_disp()
+            self.disp_lock = 0
 
 # Main interaction
 pdp_emul = Emulator()
