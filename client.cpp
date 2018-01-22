@@ -136,29 +136,32 @@ public:
                 }
                 if (strstr(buffer, "em_make_step")) {
                         int cycle = pdp->exec();
-                        if (pdp.get_state() == HALTED) {
+                        if (pdp->get_state() == HALTED) {
                                 cycle = -1;
                         }
-                        std::stringstream ss;
-                        ss << cycle;
-                        std::string str = ss.str();
+                        int instr_addr = pdp->get_pc();
+                        std::string cc = std::to_string(cycle);
+                        std::string ad = std::to_string(instr_addr);
+                        ad += " " + cc;
 
-
-                        strcpy(buffer, str.c_str());
+                        std::cerr << "=TO SEND" <<  ad << "\n";
+                        strcpy(buffer, ad.c_str());
                         send(client, &buffer, strlen(buffer), 0);
                         std::cerr << "GUI requsted step \n";
                         memset(buffer, 0, 256);
                         return;
                 }
-                if (strstr(buffer, "em_reset_mach")) {
+                if (strstr(buffer, "em_reset_state")) {
                         pdp->reset();
                         answer_ok();
+                        std::cerr << "GUI requsted reset \n";
                         return;
                 }
 skip_first:
                 switch (current_state) {
                 case COMMAND_SENDING: {
                         std::string cm = pdp->info_instruction(current_address);
+                        std::cerr << " NEXT INSTR!!!!!!!!!!!!!1 " <<  cm << "\n";
                         strcpy(buffer, cm.c_str());
                         send(client, &buffer, strlen(buffer), 0);
                         current_state = REQUEST_DONE;

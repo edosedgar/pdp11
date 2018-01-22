@@ -7,6 +7,7 @@
 #include <cstddef>
 #include "memory.hpp"
 #include "decoder.hpp"
+#include <iostream>
 
 typedef union {
         struct __attribute((packed))__ {
@@ -70,8 +71,8 @@ public:
         std::string info_instruction(uint16_t addr) {
                 uint16_t ins[3];
                 mem.read(addr, ins);
-                mem.read(addr + 1, ins + 1);
-                mem.read(addr + 2, ins + 2);
+                mem.read(addr + 2, ins + 1);
+                mem.read(addr + 4, ins + 2);
                 Instruction cur = dec.decode(ins, 3);
                 std::string out = std::string("");
                 out += std::to_string(2 * cur.get_size());

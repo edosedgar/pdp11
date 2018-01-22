@@ -47,7 +47,7 @@ class MachineState():
         string += "      Time  = " + "{0:#0{1}d}".format(self.time, 13)
         string += " us\n"
         string += "      Cycle = " + "{0:#0{1}d}".format(self.cycle, 13)
-        string += " cyc\n"
+        string += " cyc"
 
         statebuffer2.set_text(string)
 
@@ -77,7 +77,7 @@ class MachineState():
 class SourceCode():
 
     def __init__(self, textview, server):
-        self.code = dict(((i, ["HALT", 2, 0]) for i in range (0, 0xE000)))
+        self.code = dict(((i, ["HALT", 2, 0]) for i in range(0x0000, 0xFFFF)))
         self.textview = textview
         self.server = server
 
@@ -90,13 +90,15 @@ class SourceCode():
             count += size
 
     def show_rom(self, start):
+        line = 0
         self.frame_start = start
         count = start
-        end = start + 0x32 #Maximum screen line
-        self.frame_end = end
+        end = start + 0x34 #Maximum screen line
         string = ""
         self.fetch_code(start, end) #Read ROM
-        while (count <= end):
+        while (count <= end and line != 26):
+            line += 1
+            self.frame_end = count
             try:
                 command, size, b = self.code[count]
             except:
@@ -191,11 +193,14 @@ class Server():
 
     def em_send_step(self):
         self.channel.send("em_make_step")
-        cycle = self.channel.recv(256)
-        return cycle
+        data = self.channel.recv(256)
+        l_data = data.split();
+        return int(l_data[0]), int(l_data[1])
 
-    def receive(self):
-        data = channel.recv(message)
+    def em_send_reset(self):
+        self.channel.send("em_reset_state")
+        reply = self.em_recv_reply()
+        return
 
     def close(self):
         self.channel.close()
@@ -257,7 +262,7 @@ class Emulator(Gtk.Window):
         button_reset.set_icon_name("system-shutdown")
         button_reset.set_label("Reset");
         button_reset.set_is_important(True)
-        #button_reset.connect("clicked", self.button_reset_clicked)
+        button_reset.connect("clicked", self.button_reset_clicked)
         toolbar.insert(button_reset, 4)
 
         button_next = Gtk.ToolButton()
@@ -352,6 +357,8 @@ class Emulator(Gtk.Window):
         self.disasm = SourceCode(self.textview, self.server)
         # ROM initial address
         self.current_addr = 0x8000
+        self.halted = 0;
+        self.set_title("PDP11 Emulator")
         self.disasm.show_rom(self.current_addr)
         self.disasm.show_cur_line(self.current_addr)
 
@@ -359,13 +366,15 @@ class Emulator(Gtk.Window):
         self.mstate.show_state()
 
     def button_next_clicked(self, widget):
-        comm, size, b = self.disasm.code[self.current_addr]
-        self.current_addr += size
-        cycle = self.server.em_send_step()
-        print "Cycle" + cycle
-        if (int(cycle) == -1)
+        if (self.halted == 1):
             return
-        self.mstate.add_emul_time(int(cycle))
+        self.current_addr, cycle = self.server.em_send_step()
+        if (cycle == -1):
+            self.set_title("PDP11 Emulator (HALTED)")
+            self.halted = 1
+            return
+        comm, size, b = self.disasm.code[self.current_addr]
+        self.mstate.add_emul_time(cycle)
         self.disasm.show_cur_line(self.current_addr)
         self.mstate.show_state()
 
@@ -383,6 +392,19 @@ class Emulator(Gtk.Window):
 
         self.disasm.toggle_break(address)
         self.disasm.show_cur_line(self.current_addr)
+
+    def button_reset_clicked(self, widget):
+        self.server.em_send_reset()
+        self.disasm = SourceCode(self.textview, self.server)
+        # ROM initial address
+        self.current_addr = 0x8000
+        self.halted = 0;
+        self.set_title("PDP11 Emulator")
+        self.disasm.show_rom(self.current_addr)
+        self.disasm.show_cur_line(self.current_addr)
+
+        self.mstate = MachineState(self.stateview, self.server)
+        self.mstate.show_state()
 
 # Main interaction
 pdp_emul = Emulator()
