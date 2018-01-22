@@ -97,7 +97,7 @@ public:
                         goto skip_first;
                 if (strstr(buffer, "em_init_gui")) {
                         answer_ok();
-                        std::cerr << ">> GUI started \n";
+                        //std::cerr << ">> GUI started \n";
                         memset(buffer, 0, 256);
                         return;
                 }
@@ -105,7 +105,7 @@ public:
                         sscanf(buffer, "em_load_file %u", &eff_bin_size);
                         current_state = BINARY_RECEIVE;
                         answer_ok();
-                        std::cerr << ">> GUI is going to send bin \n";
+                        //std::cerr << ">> GUI is going to send bin \n";
                         memset(buffer, 0, 256);
                         byte_rec = 0;
                         return;
@@ -117,9 +117,9 @@ public:
 
                         ss << std::hex << com_adr;
                         current_state = COMMAND_SENDING;
-                        std::cerr << ">> GUI requested com with address: 0x" \
-                                  << std::setfill('0') << std::setw(4) \
-                                  << std::hex << ss.str() << "\n";
+                        //std::cerr << ">> GUI requested com with address: 0x" \
+                        //          << std::setfill('0') << std::setw(4) \
+                        //          << std::hex << ss.str() << "\n";
                         current_address = com_adr;
 
                         memset(buffer, 0, 256);
@@ -130,8 +130,8 @@ public:
                         strcpy(buffer, cm.c_str());
                         send(client, &buffer, strlen(buffer), 0);
                         current_state = REQUEST_DONE;
-                        std::cerr << ">> GUI received machine state >> " \
-                                  << cm << "\n";
+                        //std::cerr << ">> GUI received machine state >> " \
+                        //          << cm << "\n";
                         memset(buffer, 0, 256);
                         return;
                 }
@@ -147,21 +147,21 @@ public:
 
                         strcpy(buffer, ad.c_str());
                         send(client, &buffer, strlen(buffer), 0);
-                        std::cerr << ">> GUI requsted step " << \
-                                     ">> address, cycle: " << ad << "\n";
+                        //std::cerr << ">> GUI requsted step " << \
+                        //             ">> address, cycle: " << ad << "\n";
                         memset(buffer, 0, 256);
                         return;
                 }
                 if (strstr(buffer, "em_reset_state")) {
                         pdp->reset();
                         answer_ok();
-                        std::cerr << ">> GUI requsted reset \n";
+                        //std::cerr << ">> GUI requsted reset \n";
                         return;
                 }
                 if (strstr(buffer, "em_get_vram")) {
                         uint8_t *vram = pdp->get_vram();
                         send(client, vram, 8192, 0);
-                        std::cerr << ">> GUI requsted display state \n";
+                        //std::cerr << ">> GUI requsted display state \n";
                         memset(buffer, 0, 256);
                         return;
                 }
@@ -172,7 +172,7 @@ skip_first:
                         strcpy(buffer, cm.c_str());
                         send(client, &buffer, strlen(buffer), 0);
                         current_state = REQUEST_DONE;
-                        std::cerr << "GUI received command >> " << cm << "\n";
+                        //std::cerr << "GUI received command >> " << cm << "\n";
                         memset(buffer, 0, 256);
                         break;
                 }

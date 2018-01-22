@@ -224,6 +224,7 @@ class Emulator(Gtk.Window):
         self.disp_lock = 0
         self.grid = Gtk.Grid()
         self.add(self.grid)
+        self.run_emul = 0
 
         self.create_toolbar()
         self.create_sourceviewer()
@@ -267,6 +268,7 @@ class Emulator(Gtk.Window):
         button_pause.set_icon_name("media-playback-pause")
         button_pause.set_label("Pause");
         button_pause.set_is_important(True)
+        button_pause.connect("clicked", self.pause_button_clicked)
         toolbar.insert(button_pause, 3)
 
         button_reset = Gtk.ToolButton()
@@ -329,12 +331,38 @@ class Emulator(Gtk.Window):
         self.display.connect("draw", self.display_render);
 
         self.invert = 0
-        GObject.timeout_add(16, self.on_timer);
+        GObject.timeout_add(2, self.on_timer);
 
     def on_timer(self):
         self.display.queue_draw()
+        if (self.run_emul == 1):
+            self.emul_run_step()
 
         return True
+
+    def emul_run_step(self):
+        self.current_addr, cycle = self.server.em_send_step()
+        if (cycle == -1):
+            self.set_title("PDP11 Emulator (HALTED)")
+            self.halted = 1
+            self.disasm.show_cur_line(self.current_addr)
+            self.mstate.show_state()
+            self.pixdata = self.server.em_recv_disp()
+            self.run_emul = 0
+            return
+        comm, size, b = self.disasm.code[self.current_addr]
+        if (b == 1):
+            self.set_title("PDP11 Emulator")
+            self.disasm.show_cur_line(self.current_addr)
+            self.mstate.show_state()
+            self.pixdata = self.server.em_recv_disp()
+            self.run_emul = 0
+            return
+        self.mstate.add_emul_time(cycle)
+        self.disp_lock = 1
+        self.pixdata = self.server.em_recv_disp()
+        self.disp_lock = 0
+        return
 
     def display_render(self, widget, cr):
         if (self.disp_lock):
@@ -405,6 +433,8 @@ class Emulator(Gtk.Window):
         self.logo = 0
 
     def button_next_clicked(self, widget):
+        if (self.run_emul == 1):
+            return
         if (self.halted == 1):
             return
         self.current_addr, cycle = self.server.em_send_step()
@@ -416,11 +446,11 @@ class Emulator(Gtk.Window):
         self.mstate.add_emul_time(cycle)
         self.disasm.show_cur_line(self.current_addr)
         self.mstate.show_state()
-        self.disp_lock = 1
         self.pixdata = self.server.em_recv_disp()
-        self.disp_lock = 0
 
     def toggle_b_clicked(self, widget):
+        if (self.run_emul == 1):
+            return
         try:
             start, end = self.textbuffer.get_selection_bounds()
         except:
@@ -435,7 +465,17 @@ class Emulator(Gtk.Window):
         self.disasm.toggle_break(address)
         self.disasm.show_cur_line(self.current_addr)
 
+    def pause_button_clicked(self, widget):
+        if (self.run_emul == 1):
+            self.run_emul = 0
+            self.set_title("PDP11 Emulator (Paused)")
+            self.disasm.show_cur_line(self.current_addr)
+            self.mstate.show_state()
+            self.pixdata = self.server.em_recv_disp()
+        return
+
     def button_reset_clicked(self, widget):
+        self.run_emul = 0
         self.server.em_send_reset()
         self.disasm = SourceCode(self.textview, self.server)
         # ROM initial address
@@ -452,23 +492,11 @@ class Emulator(Gtk.Window):
         self.disp_lock = 0
 
     def start_button_clicked(self, widget):
+        if (self.run_emul == 1):
+            return
+        self.run_emul = 1
         self.disasm.show_cur_line(-1)
-        while True:
-            self.current_addr, cycle = self.server.em_send_step()
-            if (cycle == -1):
-                self.set_title("PDP11 Emulator (HALTED)")
-                self.halted = 1
-                return
-            comm, size, b = self.disasm.code[self.current_addr]
-            if (b == 1):
-                self.disasm.show_cur_line(self.current_addr)
-                self.mstate.show_state()
-                return
-
-            self.mstate.add_emul_time(cycle)
-            self.disp_lock = 1
-            self.pixdata = self.server.em_recv_disp()
-            self.disp_lock = 0
+        self.set_title("PDP11 Emulator (Running)")
 
 # Main interaction
 pdp_emul = Emulator()
