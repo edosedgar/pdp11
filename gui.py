@@ -197,7 +197,7 @@ class Server():
         self.channel.send("em_make_step")
         data = self.channel.recv(256)
         l_data = data.split();
-        return int(l_data[0]), int(l_data[1])
+        return int(l_data[0]), int(l_data[1]), int(l_data[2])
 
     def em_send_reset(self):
         self.channel.send("em_reset_state")
@@ -231,6 +231,7 @@ class Emulator(Gtk.Window):
         self.create_display()
         self.create_stateviewer()
         self.breakpoint_list = [];
+        self.dirty_bit = 1;
 
         self.server = Server()
         ret = self.server.em_send_init_gui()
@@ -341,7 +342,7 @@ class Emulator(Gtk.Window):
         return True
 
     def emul_run_step(self):
-        self.current_addr, cycle = self.server.em_send_step()
+        self.current_addr, cycle, self.dirty_bit = self.server.em_send_step()
         if (cycle == -1):
             self.set_title("PDP11 Emulator (HALTED)")
             self.halted = 1
@@ -359,14 +360,17 @@ class Emulator(Gtk.Window):
             self.run_emul = 0
             return
         self.mstate.add_emul_time(cycle)
-        self.disp_lock = 1
-        self.pixdata = self.server.em_recv_disp()
-        self.disp_lock = 0
+        if (self.dirty_bit == 1):
+            self.disp_lock = 1
+            self.pixdata = self.server.em_recv_disp()
+            self.disp_lock = 0
+        print "Hello          "
         return
 
     def display_render(self, widget, cr):
-        if (self.disp_lock):
+        if (self.dirty_bit == 0):
             return
+
         cr.set_source_rgb(0.0, 0.0, 0.0)
         cr.rectangle(0,0,512,512);
         cr.fill()
@@ -437,7 +441,7 @@ class Emulator(Gtk.Window):
             return
         if (self.halted == 1):
             return
-        self.current_addr, cycle = self.server.em_send_step()
+        self.current_addr, cycle, self.dirty_bit = self.server.em_send_step()
         if (cycle == -1):
             self.set_title("PDP11 Emulator (HALTED)")
             self.halted = 1
@@ -446,7 +450,8 @@ class Emulator(Gtk.Window):
         self.mstate.add_emul_time(cycle)
         self.disasm.show_cur_line(self.current_addr)
         self.mstate.show_state()
-        self.pixdata = self.server.em_recv_disp()
+        if (self.dirty_bit):
+            self.pixdata = self.server.em_recv_disp()
 
     def toggle_b_clicked(self, widget):
         if (self.run_emul == 1):
@@ -487,9 +492,7 @@ class Emulator(Gtk.Window):
 
         self.mstate = MachineState(self.stateview, self.server)
         self.mstate.show_state()
-        self.disp_lock = 1
         self.pixdata = self.server.em_recv_disp()
-        self.disp_lock = 0
 
     def start_button_clicked(self, widget):
         if (self.run_emul == 1):

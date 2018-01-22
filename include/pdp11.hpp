@@ -91,6 +91,10 @@ public:
                 mem.read(MEM_SIZE + 14, &pc);
                 return pc;
         }
+        int get_dirty()
+        {
+                return mem.get_dirty();
+        }
 private:
         Decoder dec;
         Memory mem;
@@ -113,10 +117,6 @@ private:
                 _psw.psw.z = !!!res;
                 _psw.psw.n = !!(res & (1 << 15));
                 return 0;
-        }
-        int get_dirty()
-        { 
-                returm mem.get_dirty();
         }
         int interrupt(int type);
 };

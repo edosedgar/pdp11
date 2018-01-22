@@ -27,11 +27,11 @@ int Memory::write(uint32_t addr, uint32_t* src)
                 _violated = true;
                 return Timings::timings()->get_mem_r();
         }
+        _mem->wmem[addr / 2] = (uint16_t) (0xFFFF & *src);
         if (IS_VRAM(addr)) {
                 _vram_dirty = true;
                 return Timings::timings()->get_mem_r();
         }
-        _mem->wmem[addr / 2] = (uint16_t) (0xFFFF & *src);
         if (addr < MEM_SIZE) {
                 return Timings::timings()->get_mem_r();
         }
@@ -61,11 +61,11 @@ int Memory::write(uint32_t addr, uint16_t* src)
                 _violated = true;
                 return Timings::timings()->get_mem_r();
         }
+        _mem->wmem[addr / 2] = *src;
         if (IS_VRAM(addr)) {
                 _vram_dirty = true;
                 return Timings::timings()->get_mem_r();
         }
-        _mem->wmem[addr / 2] = *src;
         if (addr < MEM_SIZE) {
                 return Timings::timings()->get_mem_r();
         }

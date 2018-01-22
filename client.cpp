@@ -141,9 +141,12 @@ public:
                                 cycle = -1;
                         }
                         int instr_addr = pdp->get_pc();
+                        int dirty_bit = pdp->get_dirty();
                         std::string cc = std::to_string(cycle);
                         std::string ad = std::to_string(instr_addr);
+                        std::string dd = std::to_string(dirty_bit);
                         ad += " " + cc;
+                        ad += " " + dd;
 
                         strcpy(buffer, ad.c_str());
                         send(client, &buffer, strlen(buffer), 0);
