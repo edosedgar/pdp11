@@ -270,10 +270,142 @@ int PDP11::exec() {
                         ret += op_addr(cur, &ea2, 1);
                         ret += mem.read(ea2, &tmp2);
                         res = (long) tmp1 - (long) tmp2;
+                        ret++;
                         _psw.psw.z = !!res;
                         _psw.psw.n = (res < 0);
                         _psw.psw.v = (res > 0xFFFF || res < 0xFFFF);
                         _psw.psw.c = (res & (1<<15));
+                        break;
+                case SUB:
+                        ret += op_addr(cur, &ea1, 2);
+                        ret += mem.read(ea1, &tmp1);
+                        ret += op_addr(cur, &ea2, 1);
+                        ret += mem.read(ea2, &tmp2);
+                        res = (long) tmp2 - (long) tmp1;
+                        tmp1 = tmp2 - tmp1;
+                        ret++;
+                        ret += mem.write(ea2, &tmp1);
+                        psw_value((uint16_t) res);
+                        _psw.psw.c = (((short) res) & (1<<15));
+                        break;
+                case ADD:
+                        ret += op_addr(cur, &ea1, 2);
+                        ret += mem.read(ea1, &tmp1);
+                        ret += op_addr(cur, &ea2, 1);
+                        ret += mem.read(ea2, &tmp2);
+                        res = (long) tmp2 + (long) tmp1;
+                        tmp1 = tmp2 + tmp1;
+                        ret++;
+                        ret += mem.write(ea2, &tmp1);
+                        psw_value((uint16_t) res);
+                        _psw.psw.c = (((short) res) & (1<<15));
+                        break;
+                case BIS:
+                        ret += op_addr(cur, &ea1, 2);
+                        ret += mem.read(ea1, &tmp1);
+                        ret += op_addr(cur, &ea2, 1);
+                        ret += mem.read(ea2, &tmp2);
+                        tmp1 = tmp2 | tmp1;
+                        ret++;
+                        ret += mem.write(ea2, &tmp1);
+                        psw_bit(tmp1);
+                        break;
+                case BIC:
+                        ret += op_addr(cur, &ea1, 2);
+                        ret += mem.read(ea1, &tmp1);
+                        ret += op_addr(cur, &ea2, 1);
+                        ret += mem.read(ea2, &tmp2);
+                        tmp1 = tmp2 & ~tmp1;
+                        ret++;
+                        ret += mem.write(ea2, &tmp1);
+                        psw_bit(tmp1);
+                        break;
+                case BIT:
+                        ret += op_addr(cur, &ea1, 2);
+                        ret += mem.read(ea1, &tmp1);
+                        ret += op_addr(cur, &ea2, 1);
+                        ret += mem.read(ea2, &tmp2);
+                        tmp1 = tmp2 & tmp1;
+                        ret++;
+                        psw_bit(tmp1);
+                        break;
+
+                case BEQ:
+                        if (_psw.psw.z == 0) {
+                                break;
+                        }
+                        goto branch;
+                case BPL:
+                        if (_psw.psw.n != 0) {
+                                break;
+                        }
+                        goto branch;
+                case BMI:
+                        if (_psw.psw.n == 0) {
+                                break;
+                        }
+                        goto branch;
+                case BVC:
+                        if (_psw.psw.v != 0) {
+                                break;
+                        }
+                        goto branch;
+                case BVS:
+                        if (_psw.psw.v == 0) {
+                                break;
+                        }
+                        goto branch;
+                case BHIS:
+                        if (_psw.psw.c != 0) {
+                                break;
+                        }
+                        goto branch;
+                case BLO:
+                        if (_psw.psw.c == 0) {
+                                break;
+                        }
+                        goto branch;
+                case BGE:
+                        if ((_psw.psw.n | _psw.psw.v) != 0) {
+                                break;
+                        }
+                        goto branch;
+                case BLT:
+                        if ((_psw.psw.n | _psw.psw.v) == 0) {
+                                break;
+                        }
+                        goto branch;
+                case BGT:
+                        if ((_psw.psw.z | _psw.psw.n | _psw.psw.v) != 0) {
+                                break;
+                        }
+                        goto branch;
+                case BLE:
+                        if ((_psw.psw.z | _psw.psw.n | _psw.psw.v) == 0) {
+                                break;
+                        }
+                        goto branch;
+                case BHI:
+                        if ((_psw.psw.c & _psw.psw.z) != 0) {
+                                break;
+                        }
+                        goto branch;
+                case BLOS:
+                        if ((_psw.psw.c & _psw.psw.z) == 0) {
+                                break;
+                        }
+                        goto branch;
+                case BNE:
+                        if (_psw.psw.z != 0) {
+                                break;
+                        }
+branch:
+                        ret++;
+                case BR:
+                        tmp1 = cur._op1 * 2;
+                        ret += mem.read(MEM_SIZE + 14, &tmp2);
+                        tmp2 += tmp1;
+                        ret += mem.write(MEM_SIZE + 14, &tmp2);
                         break;
 
                 default:

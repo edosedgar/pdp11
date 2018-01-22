@@ -51,6 +51,7 @@ class Memory {
                         memset(_mem->map.ram, 0, RAM_SIZE);
                         memset(_mem->map.vram, 0, VRAM_SIZE);
                         memset(_mem->map.regs, 0, 16);
+                        _mem->wmem[(MEM_SIZE / 2) + 7] = 0x8000;
                         return 0;
                 }
                 int read(uint32_t addr, uint32_t* dest);
