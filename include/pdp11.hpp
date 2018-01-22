@@ -98,16 +98,16 @@ private:
         std::vector<uint16_t> breakpoints;
         int psw_value(uint32_t res)
         {
-                _psw.psw.z = !!res;
-                _psw.psw.n = res & (1 << 15);
+                _psw.psw.z = !!!res;
+                _psw.psw.n = !!(res & (1 << 15));
                 _psw.psw.v = !!(res & 0xFFFF0000);
                 return 0;
         }
         int psw_bit(uint32_t res)
         {
                 _psw.psw.v = 0;
-                _psw.psw.z = !!res;
-                _psw.psw.n = res & (1 << 15);
+                _psw.psw.z = !!!res;
+                _psw.psw.n = !!(res & (1 << 15));
                 return 0;
         }
         int interrupt(int type);

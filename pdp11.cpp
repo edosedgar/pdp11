@@ -200,7 +200,7 @@ int PDP11::exec() {
                         _psw.psw.n = 0;
                         _psw.psw.v = 0;
                         _psw.psw.c = 0;
-                        _psw.psw.z = 0;
+                        _psw.psw.z = 1;
                         break;
                 case INC:
                         ret += op_addr(cur, &ea1, 1);
@@ -240,8 +240,8 @@ int PDP11::exec() {
                         ret++;
                         _psw.psw.c = tmp1 & 1;
                         tmp1 >>= 1;
-                        _psw.psw.z = !!tmp1;
-                        _psw.psw.n = tmp1 & (1 << 15);
+                        _psw.psw.z = !!!tmp1;
+                        _psw.psw.n = !!(tmp1 & (1 << 15));
                         _psw.psw.v = _psw.psw.n + _psw.psw.c;
                         ret += mem.write(ea1, &tmp1);
                         break;
@@ -249,10 +249,10 @@ int PDP11::exec() {
                         ret += op_addr(cur, &ea1, 1);
                         ret += mem.read(ea1, &tmp1);
                         ret++;
-                        _psw.psw.c = tmp1 & (1 << 15);
+                        _psw.psw.c = !!(tmp1 & (1 << 15));
                         tmp1 <<= 1;
-                        _psw.psw.z = !!tmp1;
-                        _psw.psw.n = tmp1 & (1 << 15);
+                        _psw.psw.z = !!!tmp1;
+                        _psw.psw.n = !!(tmp1 & (1 << 15));
                         _psw.psw.v = _psw.psw.n + _psw.psw.c;
                         ret += mem.write(ea1, &tmp1);
                         break;
@@ -271,7 +271,7 @@ int PDP11::exec() {
                         ret += mem.read(ea2, &tmp2);
                         res = (long) tmp1 - (long) tmp2;
                         ret++;
-                        _psw.psw.z = !!res;
+                        _psw.psw.z = !!!res;
                         _psw.psw.n = (res < 0);
                         _psw.psw.v = (res > 0xFFFF || res < 0xFFFF);
                         _psw.psw.c = (res & (1<<15));
@@ -286,7 +286,7 @@ int PDP11::exec() {
                         ret++;
                         ret += mem.write(ea2, &tmp1);
                         psw_value((uint16_t) res);
-                        _psw.psw.c = (((short) res) & (1<<15));
+                        _psw.psw.c = !!(((short) res) & (1<<15));
                         break;
                 case ADD:
                         ret += op_addr(cur, &ea1, 2);
@@ -298,7 +298,7 @@ int PDP11::exec() {
                         ret++;
                         ret += mem.write(ea2, &tmp1);
                         psw_value((uint16_t) res);
-                        _psw.psw.c = (((short) res) & (1<<15));
+                        _psw.psw.c = !!(((short) res) & (1<<15));
                         break;
                 case BIS:
                         ret += op_addr(cur, &ea1, 2);
