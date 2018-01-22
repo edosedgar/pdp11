@@ -52,6 +52,9 @@ public:
         int load(uint8_t* code, size_t size);
         int exec();
         int reset();
+        uint8_t* get_vram() {
+                return mem.get_vram();
+        }
         std::string info_registers() {
                 uint16_t tmp1;
                 auto out = std::string("");

@@ -420,6 +420,7 @@ Instruction::Instruction(InstrRaw* arr, size_t n) {
 }
 
 std::string Instruction::get_str() {
+        int16_t sig;
 
         if (_type == -1) {
                 return std::string("ERROR");
@@ -479,7 +480,9 @@ std::string Instruction::get_str() {
                                     op1 += ")";
                                     break;
                                 case MIND:
-                                    op1 += std::to_string(_offsets[_size - 1].raw);
+                                    sig = _offsets[_size - 1].raw;
+                                    op1 += std::to_string(sig);
+                                    //op1 += std::to_string(_offsets[_size - 1].raw);
                                     _size++;
                                     op1 += "(R";
                                     op1 += std::to_string(_op1);
@@ -487,7 +490,9 @@ std::string Instruction::get_str() {
                                     break;
                                 case MINDI:
                                     op1 += "@";
-                                    op1 += std::to_string(_offsets[_size - 1].raw);
+                                    sig = _offsets[_size - 1].raw;
+                                    op1 += std::to_string(sig);
+                                    //op1 += std::to_string(_offsets[_size - 1].raw);
                                     _size++;
                                     op1 += "(R";
                                     op1 += std::to_string(_op1);
@@ -557,7 +562,9 @@ std::string Instruction::get_str() {
                                     op2 += ")";
                                     break;
                                 case MIND:
-                                    op2 += std::to_string(_offsets[_size - 1].raw);
+                                    sig = _offsets[_size - 1].raw;
+                                    op2 += std::to_string(sig);
+                                    //op2 += std::to_string(_offsets[_size - 1].raw);
                                     _size++;
                                     op2 += "(R";
                                     op2 += std::to_string(_op2);
@@ -565,6 +572,8 @@ std::string Instruction::get_str() {
                                     break;
                                 case MINDI:
                                     op2 += "@";
+                                    sig = _offsets[_size - 1].raw;
+                                    op2 += std::to_string(sig);
                                     op2 += std::to_string(_offsets[_size - 1].raw);
                                     _size++;
                                     op2 += "(R";

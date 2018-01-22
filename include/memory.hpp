@@ -46,6 +46,9 @@ class Memory {
                 {
                         delete _mem;
                 }
+                uint8_t* get_vram() {
+                        return _mem->map.vram;
+                }
                 int reset()
                 {
                         memset(_mem->map.ram, 0, RAM_SIZE);

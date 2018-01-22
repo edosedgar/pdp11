@@ -19,6 +19,7 @@ int PDP11::op_addr(Instruction i, uint32_t* addr, int n) {
         int mod;
         int ret = 0;
         uint32_t temp1, temp2, temp, x;
+        uint16_t eff;
 
         if (n == 1) {
                 op = i._op1;
@@ -59,6 +60,9 @@ int PDP11::op_addr(Instruction i, uint32_t* addr, int n) {
                                 break;
                 }
         }
+
+        if (mod == -1)
+                mod = MREG;
 
         switch (mod) {
                 case MREG:
@@ -112,7 +116,9 @@ int PDP11::op_addr(Instruction i, uint32_t* addr, int n) {
                         ret += mem.read(temp1, &temp2);
                         ret += mem.incr(MEM_SIZE + 14, 2);
                         ret += mem.read(MEM_SIZE + op * 2, &temp1);
-                        *addr = (uint16_t) temp1 + temp2;
+                        eff = temp1;
+                        eff += (uint16_t) temp2;
+                        *addr = eff;
                         return ret;
 
                 case MINDI:
@@ -255,6 +261,36 @@ int PDP11::exec() {
                         _psw.psw.n = !!(tmp1 & (1 << 15));
                         _psw.psw.v = _psw.psw.n + _psw.psw.c;
                         ret += mem.write(ea1, &tmp1);
+                        break;
+                case ASH:
+                        ret += op_addr(cur, &ea1, 1);
+                        ret += mem.read(ea1, &tmp1); 
+                        ret += op_addr(cur, &ea2, 2);
+                        ret += mem.read(ea2, &tmp2); 
+
+                        {
+                        uint16_t i = 0;
+                        tmp1 &= 0077;
+                        if (tmp1 & (1 << 5)) {
+                                for (i = 0; i <= 32; ++i) {
+                                        if (((i + tmp1) & 0x1F) == 0) {
+                                                goto end1;
+                                        }
+                                }
+end1:
+                                _psw.psw.c = !!(tmp2 & (1 << i)); // ???
+                                tmp2 >>= i;
+                        } else {
+                                tmp2 <<= (tmp1 & 0x1F);
+                        }
+                        ret++;
+                        }
+
+                        tmp1 <<= 1;
+                        _psw.psw.z = !!!tmp2;
+                        _psw.psw.n = !!(tmp2 & (1 << 15));
+                        _psw.psw.v = !!(tmp2 & (1 << 15)); //Incorrect
+                        ret += mem.write(ea2, &tmp2);
                         break;
                 case TST:
                         ret += op_addr(cur, &ea1, 1);
@@ -425,13 +461,13 @@ branch:
                         uint16_t sp;
                         uint16_t old_pc;
                         ret += op_addr(cur, &ea1, 1);
-                        ret += mem.read(ea1, &tmp1);
+                        tmp1 = ea1;
                         ret += mem.read(MEM_SIZE + cur._op2  * 2, &tmp2);
-                        ret += mem.read(MEM_SIZE + 12, &sp);
                         ret += mem.read(MEM_SIZE + 14, &old_pc);
 
-                        ret += mem.write(sp, &tmp2);
                         ret += mem.incr(MEM_SIZE + 12, -2);
+                        ret += mem.read(MEM_SIZE + 12, &sp);
+                        ret += mem.write(sp, &tmp2);
                         ret += mem.write(MEM_SIZE + cur._op2  * 2, &old_pc);
 
                         ret += mem.write(MEM_SIZE + 14, &tmp1);
@@ -444,9 +480,10 @@ branch:
                         ret += mem.read(MEM_SIZE + cur._op1  * 2, &tmp1);
                         ret += mem.write(MEM_SIZE + 14, &tmp1);
 
-                        ret += mem.incr(MEM_SIZE + 12, 2);
                         ret += mem.read(MEM_SIZE + 12, &sp);
                         ret += mem.read(sp, &tmp2);
+                        ret += mem.incr(MEM_SIZE + 12, 2);
+
                         ret += mem.write(MEM_SIZE + cur._op1  * 2, &tmp2);
                         }
                         break;

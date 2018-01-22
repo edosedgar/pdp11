@@ -2,12 +2,13 @@
        # .org 32768, 0
         .globl _start
 _start:
-        mov r6, $077777
-        mov @$004, $0x8022
-        mov @$010, $0x8024
-        mov @$020, $0x8026
-        mov @$030, $0x8028
-        jsr r7, $0x8066
+        mov $077776, r6
+        mov $0x8022, @$004 
+        mov $0x8024, @$010 
+        mov $0x8026, @$020 
+        mov $0x8028, @$030 
+        #jsr r7, @_notmain
+        jsr r7, @$0x812c
         halt
         .even
 #        .globl _time
