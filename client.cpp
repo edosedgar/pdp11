@@ -117,7 +117,7 @@ public:
 
                         ss << std::hex << com_adr;
                         current_state = COMMAND_SENDING;
-                        std::cerr << "GUI requested com with address: 0x" \
+                        std::cerr << ">> GUI requested com with address: 0x" \
                                   << std::setfill('0') << std::setw(4) \
                                   << std::hex << ss.str() << "\n";
                         current_address = com_adr;
@@ -130,7 +130,8 @@ public:
                         strcpy(buffer, cm.c_str());
                         send(client, &buffer, strlen(buffer), 0);
                         current_state = REQUEST_DONE;
-                        std::cerr << "GUI received machine state \n";
+                        std::cerr << ">> GUI received machine state >> " \
+                                  << cm << "\n";
                         memset(buffer, 0, 256);
                         return;
                 }
@@ -144,28 +145,34 @@ public:
                         std::string ad = std::to_string(instr_addr);
                         ad += " " + cc;
 
-                        std::cerr << "=TO SEND" <<  ad << "\n";
                         strcpy(buffer, ad.c_str());
                         send(client, &buffer, strlen(buffer), 0);
-                        std::cerr << "GUI requsted step \n";
+                        std::cerr << ">> GUI requsted step " << \
+                                     ">> address, cycle: " << ad << "\n";
                         memset(buffer, 0, 256);
                         return;
                 }
                 if (strstr(buffer, "em_reset_state")) {
                         pdp->reset();
                         answer_ok();
-                        std::cerr << "GUI requsted reset \n";
+                        std::cerr << ">> GUI requsted reset \n";
+                        return;
+                }
+                if (strstr(buffer, "em_get_vram")) {
+                        //
+                        //
+                        send(client, &buffer, 8192, 0);
+                        std::cerr << ">> GUI requsted display state \n";
                         return;
                 }
 skip_first:
                 switch (current_state) {
                 case COMMAND_SENDING: {
                         std::string cm = pdp->info_instruction(current_address);
-                        std::cerr << " NEXT INSTR!!!!!!!!!!!!!1 " <<  cm << "\n";
                         strcpy(buffer, cm.c_str());
                         send(client, &buffer, strlen(buffer), 0);
                         current_state = REQUEST_DONE;
-                        std::cerr << "GUI received command \n";
+                        std::cerr << "GUI received command >> " << cm << "\n";
                         memset(buffer, 0, 256);
                         break;
                 }

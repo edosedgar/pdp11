@@ -93,10 +93,10 @@ class SourceCode():
         line = 0
         self.frame_start = start
         count = start
-        end = start + 0x34 #Maximum screen line
+        end = start + 0x40 #Maximum screen line
         string = ""
         self.fetch_code(start, end) #Read ROM
-        while (count <= end and line != 26):
+        while (count <= end and line != 25):
             line += 1
             self.frame_end = count
             try:
@@ -201,6 +201,11 @@ class Server():
         self.channel.send("em_reset_state")
         reply = self.em_recv_reply()
         return
+
+    def em_recv_disp(self):
+        self.channel.send("em_get_vram")
+        disp = self.channel.recv(8192)
+        return disp
 
     def close(self):
         self.channel.close()
