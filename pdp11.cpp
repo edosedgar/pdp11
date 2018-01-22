@@ -326,7 +326,7 @@ end1:
                         ret++;
                         _psw.psw.z = !!!res;
                         _psw.psw.n = (res < 0);
-                        _psw.psw.v = (res > 0xFFFF || res < 0xFFFF);
+                        _psw.psw.v = (res > 0x7FFF || res < -(0x8000));
                         _psw.psw.c = (res & (1<<15));
                         break;
                 case SUB:
@@ -419,22 +419,22 @@ end1:
                         }
                         goto branch;
                 case BGE:
-                        if ((_psw.psw.n | _psw.psw.v) != 0) {
+                        if ((_psw.psw.n ^ _psw.psw.v) != 0) {
                                 break;
                         }
                         goto branch;
                 case BLT:
-                        if ((_psw.psw.n | _psw.psw.v) == 0) {
+                        if ((_psw.psw.n ^ _psw.psw.v) == 0) {
                                 break;
                         }
                         goto branch;
                 case BGT:
-                        if ((_psw.psw.z | _psw.psw.n | _psw.psw.v) != 0) {
+                        if ((_psw.psw.z | (_psw.psw.n ^ _psw.psw.v)) != 0) {
                                 break;
                         }
                         goto branch;
                 case BLE:
-                        if ((_psw.psw.z | _psw.psw.n | _psw.psw.v) == 0) {
+                        if ((_psw.psw.z | (_psw.psw.n ^ _psw.psw.v)) == 0) {
                                 break;
                         }
                         goto branch;
