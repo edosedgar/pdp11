@@ -31,7 +31,7 @@ startup.o: startup.S
 #	sed -e '/___main/d' -i bios.S
 
 bios.o: bios.c
-	$(CC) -fPIC -ffreestanding -nostdlib -nostartfiles $^ -o $@
+	$(CC) -fPIC -ffreestanding -nostdlib -nostartfiles -Wno-implicit-function-declaration -Wno-int-conversion $^ -o $@
 	
 
 .PHONY: clean

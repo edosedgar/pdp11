@@ -1,5 +1,12 @@
 #define VRAM 0x4000
 
+void notmain(void) {
+        short* vram = VRAM;
+        set_bit(vram, 1, 1);
+        delay(0x1);
+        return;
+}
+
 void delay(short time) {
         while (time != 0) {
                 short tmp1 = 0xF;
@@ -22,9 +29,4 @@ void clr_bit(short* vram, short x, short y) {
         *(vram + ind)  = new;
 }
 
-void notmain(void) {
-        short* vram = VRAM;
-        set_bit(vram, 1, 1);
-        delay(0x1);
-        return;
-}
+
