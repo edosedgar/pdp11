@@ -19,7 +19,7 @@ startup.bin: startup.S
 
 bios: bios.out
 	$(OBJCOPY) -O binary bios.out $@
-
+#	mv $^ $@
 bios.out: bios.o startup.o linker.T
 	$(LD) -nostdlib -T linker.T -L${C_PREFIX}/../lib/gcc/pdp11-aout/6.4.0/ -o $@
 
@@ -31,7 +31,7 @@ startup.o: startup.S
 #	sed -e '/___main/d' -i bios.S
 
 bios.o: bios.c
-	$(CC) -ffreestanding -nostdlib -nostartfiles $^ -o $@
+	$(CC) -fPIC -ffreestanding -nostdlib -nostartfiles $^ -o $@
 	
 
 .PHONY: clean

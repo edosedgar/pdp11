@@ -25,7 +25,7 @@ int main(int argc, char* argv[]) {
         auto rw = new InstrRaw[(size / 2) + 3];
         fread(rw, sizeof(InstrRaw), size / 2, file);
         //std::cout << sizeof(rw->zero_op) << '\n';
-        for (int i = 0; i < size / 2; i++) {
+        for (unsigned i = 0; i < size / 2; i++) {
                 Instruction instr1(&rw[i], 3);
                 i += instr1.get_size() - 1;
                 std::cout << instr1.str << " size " << instr1.get_size() << '\n';
