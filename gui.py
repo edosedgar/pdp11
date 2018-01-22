@@ -93,7 +93,7 @@ class SourceCode():
         line = 0
         self.frame_start = start
         count = start
-        end = start + 0x40 #Maximum screen line
+        end = start + 0x80 #Maximum screen line
         string = ""
         self.fetch_code(start, end) #Read ROM
         while (count <= end and line != 25):
@@ -133,9 +133,9 @@ class SourceCode():
                 string += "  "
             string += "{0:#0{1}x}".format(count, 6)
             if (count == address):
-                string += " >>>>>> "
+                string += " >>>>> "
             else:
-                string += "        "
+                string += "       "
             string += command.replace("\n", "") + "\n"
             count += size
         textbuffer = self.textview.get_buffer()
