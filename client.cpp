@@ -142,9 +142,14 @@ public:
 
                         strcpy(buffer, str.c_str());
                         send(client, &buffer, strlen(buffer), 0);
-                        send(client, &buffer, strlen(buffer), 0);
                         std::cerr << "GUI requsted step \n";
                         memset(buffer, 0, 256);
+                        return;
+                }
+                if (strstr(buffer, "em_reset_mach")) {
+                        pdp->reset();
+                        answer_ok();
+                        return;
                 }
 skip_first:
                 switch (current_state) {
@@ -173,6 +178,7 @@ skip_first:
         void start_machine() {
                 pdp = new PDP11;
                 pdp->load((uint8_t*) binary, eff_bin_size);
+                pdp->reset();
         }
 };
 

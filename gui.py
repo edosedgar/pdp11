@@ -43,10 +43,10 @@ class MachineState():
         string += "     C:" + str(self.c) + " V:" + str(self.v)
         string += " Z:" + str(self.z)
         string += " N:" + str(self.n) + " T:" + str(self.t) + " I:"
-        string += "{0:#0{1}d}".format(self.i, 3) + "\n\n"
+        string += "{0:#0{1}b}".format(self.i, 5) + "\n\n"
         string += "      Time  = " + "{0:#0{1}d}".format(self.time, 13)
         string += " us\n"
-        string += "      Cycle = " + "{0:#0{1}d}".format(self.time, 13)
+        string += "      Cycle = " + "{0:#0{1}d}".format(self.cycle, 13)
         string += " cyc\n"
 
         statebuffer2.set_text(string)
@@ -64,15 +64,15 @@ class MachineState():
         self.r7 = int(regs_list[7][3:])
         psw = int(regs_list[8][4:])
         self.c = psw & 0x01
-        self.v = psw & 0x02 >> 1
-        self.z = psw & 0x04 >> 2
-        self.n = psw & 0x08 >> 3
-        self.t = psw & 0x10 >> 4
-        self.i = psw & 0xE0 >> 5
-        print regs_list
+        self.v = (psw & 0x02) >> 1
+        self.z = (psw & 0x04) >> 2
+        self.n = (psw & 0x08) >> 3
+        self.t = (psw & 0x10) >> 4
+        self.i = (psw & 0xE0) >> 5
 
     def add_emul_time(self, new_cycle):
         self.cycle += new_cycle
+        self.time = self.cycle * 1
 
 class SourceCode():
 
@@ -257,6 +257,7 @@ class Emulator(Gtk.Window):
         button_reset.set_icon_name("system-shutdown")
         button_reset.set_label("Reset");
         button_reset.set_is_important(True)
+        button_reset.connect("clicked", self.button_reset_clicked)
         toolbar.insert(button_reset, 4)
 
         button_next = Gtk.ToolButton()
@@ -362,6 +363,7 @@ class Emulator(Gtk.Window):
         self.current_addr += size
         cycle = self.server.em_send_step()
         self.mstate.add_emul_time(int(cycle))
+        print "Cycle" + cycle
         self.disasm.show_cur_line(self.current_addr)
         self.mstate.show_state()
 
