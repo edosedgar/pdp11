@@ -2,7 +2,7 @@
        # .org 32768, 0
         .globl _start
 _start:
-        mov $077776, r6
+        mov $0x3ffc, r6
         mov $0x8026, @$004 
         mov $0x8028, @$010 
         mov $0x802a, @$020 

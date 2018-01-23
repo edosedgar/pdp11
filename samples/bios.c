@@ -1,4 +1,6 @@
 #define VRAM 0x4000
+#define VRAM2 0x6000
+#define VRAM_CONTROL 0xF000
 
 void notmain(void) {
         volatile short* vram = VRAM;
@@ -34,7 +36,7 @@ void clr_bit(short* vram, short x, short y) {
         *(vram + ind)  = new;
 }
 */
-void drawLine(short x1, short y1, short x2, short y2, short v) {
+void draw_line(short x1, short y1, short x2, short y2, short v) {
     const short deltaX = abs(x2 - x1);
     const short deltaY = abs(y2 - y1);
     const short signX = x1 < x2 ? 1 : -1;
@@ -72,12 +74,28 @@ volatile void delay(short time) {
         }
 }
 
+void vert_line(short* vram, short X, short v) {
+        short i = 0;
+        for (i = 0; i < 16; i++) {
+                vram[i*16 + X] = v;
+        }
+}
+
+void flip(short v) {
+        short* vram_control = VRAM_CONTROL;
+        *vram_control = v;
+}
+
 void demo() {
         short i = 0;
         short* vram = VRAM;
         //while (1) {
-                for (i = 0; i < 32; i++) {
-                        drawLine(i, 0, i, 255, 1);
+                for (i = 0; i < 16; i++) {
+                        //draw_line(i, 0, i, 255, 1);
+                        //vert_line(vram + (0x2000) * !!(i&1), i, 0);
+                        flip(!(i & 1));
+                        vert_line(vram + (0x2000) * (i&1), i, 0xFFFF);
+                        flip(!!(i & 1));
                 }
         //}
         //drawLine(0, 0, 200, 100);

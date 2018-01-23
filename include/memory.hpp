@@ -33,7 +33,7 @@ class Memory {
 
         size_t _size;
         bool _violated;
-        int _vram_mode;
+        unsigned _vram_mode;
         bool _vram_dirty;
         MemoryMap* _mem;
         public:
@@ -47,7 +47,7 @@ class Memory {
                         delete _mem;
                 }
                 uint8_t* get_vram() {
-                        return _mem->map.vram;
+                        return _mem->map.vram + (_vram_mode * (VRAM_SIZE / 2));
                 }
                 int reset()
                 {
@@ -61,6 +61,8 @@ class Memory {
                 int write(uint32_t addr, uint32_t* src);
                 int read(uint32_t addr, uint16_t* dest);
                 int write(uint32_t addr, uint16_t* src);
+                int read(uint32_t addr, uint8_t* dest);
+                int write(uint32_t addr, uint8_t* src);
                 int incr(uint32_t addr, int n) {
                         uint16_t temp;
                         int ret = 0;

@@ -34,8 +34,15 @@ int PDP11::op_addr(Instruction i, uint32_t* addr, int n) {
         if (op == 07) {
                 switch (mod) {
                         case R7IMM:
+                                if (i._bit == 1) {
+                                        //ret += mem.incr(MEM_SIZE + 14, 1);
+                                } 
                                 ret += mem.read(MEM_SIZE + 14, addr);
-                                ret += mem.incr(MEM_SIZE + 14, 2);
+                                if (i._bit == 1) {
+                                        ret += mem.incr(MEM_SIZE + 14, 2);
+                                } else {
+                                        ret += mem.incr(MEM_SIZE + 14, 2);
+                                }
                                 return ret;
                         case R7ABS:
                                 ret += mem.read(MEM_SIZE + 14, &temp);
@@ -174,6 +181,8 @@ int PDP11::exec() {
         uint32_t ea2 = -1;
         uint16_t tmp1 = -1;
         uint16_t tmp2 = -1;
+        uint8_t byte1 = 0;
+        uint8_t byte2 = 0;
         long res = -1;
 
         ret += mem.read(MEM_SIZE + 14, &pc);
@@ -201,6 +210,15 @@ int PDP11::exec() {
                         break;
                 case CLR:
                         ret += op_addr(cur, &ea1, 1);
+                        if (cur._bit == 1) {
+                                byte1 = 0;
+                                ret += mem.write(ea1, &byte1);
+                                _psw.psw.n = 0;
+                                _psw.psw.v = 0;
+                                _psw.psw.c = 0;
+                                _psw.psw.z = 1;
+                                break;
+                        }
                         tmp1 = 0;
                         ret += mem.write(ea1, &tmp1);
                         _psw.psw.n = 0;
@@ -289,12 +307,11 @@ end1:
                                 _psw.psw.c = !!(tmp2 & (1 << i)); // ???
                                 tmp2 >>= i;
                         } else {
-                                tmp2 <<= (tmp1 & 0x1F);
+                                tmp2 <<= ((tmp1 & 0x1F) - 1);
                         }
                         ret++;
                         }
 
-                        tmp1 <<= 1;
                         _psw.psw.z = !!!tmp2;
                         _psw.psw.n = !!(tmp2 & (1 << 15));
                         _psw.psw.v = !!(tmp2 & (1 << 15)); //Incorrect
@@ -310,6 +327,15 @@ end1:
                         _psw.psw.v = 0;
                         break;
                 case MOV:
+                        if (cur._bit == 1) {
+                                ret += op_addr(cur, &ea1, 2);
+                                ret += mem.read(ea1, &byte1);
+                                ret += op_addr(cur, &ea2, 1);
+                                ret += mem.write(ea2, &byte1);
+                                psw_b_value(byte1);
+                                _psw.psw.v = 0;
+                                break;
+                        }
                         ret += op_addr(cur, &ea1, 2);
                         ret += mem.read(ea1, &tmp1);
                         ret += op_addr(cur, &ea2, 1);

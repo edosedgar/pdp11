@@ -111,6 +111,13 @@ private:
                 _psw.psw.v = !!(res & 0xFFFF0000);
                 return 0;
         }
+        int psw_b_value(uint32_t res)
+        {
+                _psw.psw.z = !!!res;
+                _psw.psw.n = !!(res & (1 << 7));
+                _psw.psw.v = !!(res & 0xFFFFFF00);
+                return 0;
+        }
         int psw_bit(uint32_t res)
         {
                 _psw.psw.v = 0;
