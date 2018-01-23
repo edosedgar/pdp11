@@ -6,7 +6,7 @@ AS=${PREFIX}/${PROG_P}-as
 OBJCOPY=${PREFIX}/${PROG_P}-objcopy
 LD=${PREFIX}/${PROG_P}-ld
 
-all: sample1.bin startup.bin bios vertline vertline_vsync
+all: sample1.bin startup.bin bios vertline vertline_vsync fonts
 
 sample1.bin: sample1.S
 	$(AS) $^ -o sample1.o
@@ -46,6 +46,16 @@ vertline_vsync.o: vertline.c
 
 startup.o: startup.S
 	$(AS) $^ -o startup.o
+
+fonts: fonts.out
+	$(OBJCOPY) -O binary fonts.out $@
+#	mv $^ $@
+fonts.out: fonts.o startup.o linker.fonts.T
+	$(LD) -nostdlib -T linker.fonts.T -L${C_PREFIX}/../lib/gcc/pdp11-aout/6.4.0/ -o $@
+
+fonts.o: fonts.c
+	$(CC) -fPIC -ffreestanding -nostdlib -nostartfiles -Wno-implicit-function-declaration -Wno-int-conversion $^ -o $@
+	
 
 #bios.o: bios.S
 #	$(AS)  $^ -o $@

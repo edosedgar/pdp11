@@ -76,7 +76,7 @@ volatile void delay(short time) {
 
 void vert_line(short* vram, short X, short v) {
         short i = 0;
-        for (i = 0; i < 256; i++) {
+        for (i = 0; i < 128; i++) {
                 vram[i*16 + X] = v;
         }
 }
@@ -89,13 +89,15 @@ void flip(short v) {
 void demo() {
         short i = 0;
         short* vram = VRAM;
+        unsigned short xchar[16] = 
+        { 0x8001, 0x4002, 0x4002, 0x2004, 0x2004}
         while (1) {
 #ifdef VSYNC
                 flip(1);
                 for (i = 0; i < 16; i++) {
                         vert_line(vram + (0x2000) * (i&1), i, 0xFFFF);
                         flip((i & 1));
-                        delay(100);
+                        delay(10000);
                         flip(!(i & 1));
                         vert_line(vram + (0x2000) * (i&1), i, 0);
                         flip((i & 1));
@@ -103,6 +105,7 @@ void demo() {
 #else
                 for (i = 0; i < 16; i++) {
                         vert_line(vram, i, 0xFFFF);
+                        delay(10000);
                         vert_line(vram, i, 0);
                 }
 #endif
