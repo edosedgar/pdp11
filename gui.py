@@ -427,7 +427,6 @@ class Emulator(Gtk.Window):
         return
 
     def display_render(self, widget, cr):
-        self.cr = 0
         cr.set_source_rgb(0.0, 0.0, 0.0)
         cr.rectangle(0,0,512,512);
         cr.fill()

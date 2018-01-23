@@ -41,6 +41,7 @@ class Memory {
                 {
                         _mem = new MemoryMap;
                         _violated = false;
+                        _vram_dirty = true;
                 }
                 ~Memory()
                 {
