@@ -247,7 +247,6 @@ class Server():
         while f_size != size:
             disp += self.channel.recv(size - f_size)
             f_size = len(disp)
-            print "Grow: " + str(f_size)
 
         return disp
 
@@ -487,6 +486,8 @@ class Emulator(Gtk.Window):
         cr.fill()
 
     def load_button_clicked(self, widget):
+        if (self.run_emul == 1):
+            return
         fc = Gtk.FileChooserDialog("Open.." , self, Gtk.FileChooserAction.OPEN,
                                    (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
                                     Gtk.STOCK_OPEN, Gtk.ResponseType.OK))
