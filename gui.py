@@ -245,7 +245,6 @@ class Server():
 
     def em_send_run(self):
         self.channel.send("em_run_machine")
-        reply = self.em_recv_reply()
         return
 
     def em_wait_run_result(self):
@@ -256,6 +255,11 @@ class Server():
         reply = self.channel.recv(256)
         l_data = reply.split()
         return int(l_data[1]), int(l_data[0])
+
+    def em_try_pause(self):
+        self.channel.send("em_send_pause")
+        reply = self.channel.recv(256)
+        return
 
     def close(self):
         self.channel.close()
@@ -281,6 +285,7 @@ class Emulator(Gtk.Window):
         self.breakpoint_list = [];
         self.dirty_bit = 1;
         self.showed_vram = 0;
+        self.binary_full_name = ""
 
         self.server = Server()
         ret = self.server.em_send_init_gui()
@@ -318,7 +323,7 @@ class Emulator(Gtk.Window):
         button_pause.set_icon_name("media-playback-pause")
         button_pause.set_label("Pause");
         button_pause.set_is_important(True)
-        #button_pause.connect("clicked", self.pause_button_clicked)
+        button_pause.connect("clicked", self.pause_button_clicked)
         toolbar.insert(button_pause, 3)
 
         button_reset = Gtk.ToolButton()
@@ -404,7 +409,6 @@ class Emulator(Gtk.Window):
             return
 
         if ("halt" in reply):
-            print "HALT3 \n"
             self.server.em_send_ok()
             self.set_title("PDP11 Emulator (HALTED)")
             cycle, self.current_addr = self.server.em_receive_state()
@@ -412,7 +416,6 @@ class Emulator(Gtk.Window):
             self.halted = 1
             self.disasm.show_cur_line(self.current_addr)
             self.mstate.show_state()
-            self.pixdata = self.server.em_recv_disp()
             self.run_emul = 0
             return
 
@@ -497,6 +500,8 @@ class Emulator(Gtk.Window):
         self.logo = 0
 
     def button_next_clicked(self, widget):
+        if (len(self.binary_full_name) == 0):
+            return
         if (self.run_emul == 1):
             return
         if (self.halted == 1):
@@ -532,18 +537,27 @@ class Emulator(Gtk.Window):
         self.disasm.show_cur_line(self.current_addr)
 
     def pause_button_clicked(self, widget):
-        if (self.run_emul == 1):
+        """if (self.run_emul == 1):
+            self.server.em_try_pause()
             self.run_emul = 0
             self.set_title("PDP11 Emulator (Paused)")
+
+            cycle, self.current_addr = self.server.em_receive_state()
             self.disasm.show_cur_line(self.current_addr)
-            self.mstate.show_state()
+
+            self.mstate.add_emul_time(cycle)
+            self.mstate.show_state_no_reg()
             self.pixdata = self.server.em_recv_disp()
+"""
         return
 
     def button_reset_clicked(self, widget):
+        if (len(self.binary_full_name) == 0):
+            return
+        if (self.run_emul == 1):
+            return
         self.run_emul = 0
         self.server.em_send_reset()
-        self.disasm = SourceCode(self.textview, self.server)
         # ROM initial address
         self.current_addr = 0x8000
         self.halted = 0;
@@ -556,7 +570,11 @@ class Emulator(Gtk.Window):
         self.pixdata = self.server.em_recv_disp()
 
     def start_button_clicked(self, widget):
+        if (len(self.binary_full_name) == 0):
+            return
         if (self.run_emul == 1):
+            return
+        if (self.halted == 1):
             return
         self.run_emul = 1
         self.disasm.show_cur_line(-1)

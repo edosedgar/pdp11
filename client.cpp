@@ -54,7 +54,6 @@ public:
                 socklen_t size;
                 current_state = REQUEST_DONE;
                 binary = new uint16_t[12288]();
-                breakpoint = new uint8_t[65536]();
 
                 std::cout << "\n- Starting server..." << std::endl;
                 server = socket(AF_INET, SOCK_STREAM, 0);
@@ -203,18 +202,19 @@ public:
                         int instr_addr = pdp->get_pc();
                         int dirty_bit = 0;
                         int sum_cycle = 0;
+                        int old_adr = 0;
                         uint8_t *vram = NULL;
 #ifdef DEBUG_DEF
                         std::cerr << ">> GUI requsted run \n";
 #endif
-                        answer_ok();
                         while (get_state != HALTED) {
                                 cycle = pdp->exec();
+                                old_adr = instr_addr;
                                 instr_addr = pdp->get_pc();
                                 dirty_bit = pdp->get_dirty();
-                                //std::cerr << "One more step " << cycle << " " << instr_addr << "\n";
                                 sum_cycle += cycle;
                                 if (dirty_bit) {
+                                        std::cerr << "GUI is being received VRAM \n";
                                         vram = pdp->get_vram();
                                         send(client, "vram", 5, 0);
                                         recv(client, buffer, 256, 0);
@@ -230,6 +230,7 @@ public:
                                         sum_cycle = 0;
                                 }
                                 if (breakpoint[instr_addr]) {
+                                        std::cerr << "GUI is being received BREAK \n";
                                         send(client, "break", 6, 0);
                                         recv(client, buffer, 256, 0);
                                         break;
@@ -237,8 +238,10 @@ public:
                                 get_state = pdp->get_state();
                         }
                         if (pdp->get_state() == HALTED) {
+                                std::cerr << "GUI is being received HALT \n";
                                 send(client, "halt", 5, 0);
                                 recv(client, buffer, 256, 0);
+                                instr_addr = old_adr;
                         }
                         std::string cc = std::to_string(sum_cycle);
                         std::string ad = std::to_string(instr_addr);
@@ -268,6 +271,7 @@ skip_first:
                         if (byte_rec * 2 >= eff_bin_size) {
                                 current_state = REQUEST_DONE;
                                 answer_ok();
+                                breakpoint = new uint8_t[65536]();
                                 start_machine();
                         }
                         break;
