@@ -178,7 +178,7 @@ class SourceCode():
 
 class Server():
     def __init__(self):
-        self.TCP_IP = '127.0.0.1'
+        self.TCP_IP = '192.168.0.113'
         self.TCP_PORT = 6700
 
         self.channel = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -230,12 +230,25 @@ class Server():
         return
 
     def em_recv_disp_raw(self):
-        disp = self.channel.recv(8192)
+        size = 8192
+        f_size = 0
+        disp = []
+        while f_size != size:
+            disp += self.channel.recv(size - f_size)
+            f_size = len(disp)
+
         return disp
 
     def em_recv_disp(self):
         self.channel.send("em_get_vram")
-        disp = self.channel.recv(8192)
+        size = 8192
+        f_size = 0
+        disp = []
+        while f_size != size:
+            disp += self.channel.recv(size - f_size)
+            f_size = len(disp)
+            print "Grow: " + str(f_size)
+
         return disp
 
     def em_toggle_breakpoint(self, adr):
