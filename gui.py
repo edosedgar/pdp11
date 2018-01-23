@@ -280,6 +280,7 @@ class Emulator(Gtk.Window):
         self.create_stateviewer()
         self.breakpoint_list = [];
         self.dirty_bit = 1;
+        self.showed_vram = 0;
 
         self.server = Server()
         ret = self.server.em_send_init_gui()
@@ -384,7 +385,7 @@ class Emulator(Gtk.Window):
 
     def on_timer(self):
         self.display.queue_draw()
-        if (self.run_emul == 1):
+        if (self.run_emul == 1 and self.showed_vram == 1):
             self.emul_run_step()
 
         return True
@@ -423,6 +424,7 @@ class Emulator(Gtk.Window):
             self.mstate.add_emul_time(cycle)
             self.mstate.show_state_no_reg()
             self.server.em_send_ok()
+            self.showed_vram = 0
 
         return
 
@@ -430,6 +432,8 @@ class Emulator(Gtk.Window):
         cr.set_source_rgb(0.0, 0.0, 0.0)
         cr.rectangle(0,0,512,512);
         cr.fill()
+
+        self.showed_vram = 1
 
         if (self.logo):
             layout = PangoCairo.create_layout (cr)
