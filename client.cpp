@@ -46,9 +46,9 @@ class GUI_channel
         PDP11 *pdp;
         uint8_t *breakpoint;
 public:
-        GUI_channel() {
+        GUI_channel(char *ip_a) {
                 port = 6700;
-                ip = "192.168.0.113";
+                ip = ip_a;
                 struct sockaddr_in server_addr;
                 int yes = 1;
                 socklen_t size;
@@ -296,7 +296,11 @@ skip_first:
 int
 main(int argc, char *argv[])
 {
-        GUI_channel GUICh = GUI_channel();
+        if (argc != 2) {
+                std::cerr << "Usage: pdp11 CurrentIP\n";
+                exit(1);
+        }
+        GUI_channel GUICh = GUI_channel(argv[1]);
         while (1) {
                 GUICh.loop();
                 GUICh.process_request();
