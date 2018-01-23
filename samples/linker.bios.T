@@ -5,5 +5,3 @@ SECTIONS {
                 bios.o (.text);
         }
 }
-OUTPUT(binary)
-OUTPUT(bios.bin)
