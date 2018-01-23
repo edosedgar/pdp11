@@ -17,7 +17,7 @@ short abs(short x) {
         return 0 - x;
 }
 
-void set_bit(short* vram, short x, short y, short v) {
+void set_bit(short* vram, unsigned short x, unsigned short y, unsigned short v) {
         short ind = y * 16 + (x / 16);
         short old = *(vram + ind);
         short new;
@@ -89,26 +89,23 @@ void flip(short v) {
 void demo() {
         short i = 0;
         short* vram = VRAM;
+        volatile short* rand = 0xff00;
         while (1) {
+                unsigned short x1 = *rand & 0x00FF;
+                unsigned short x2 = *rand & 0x00FF;
+                unsigned short y1 = *rand & 0x00FF;
+                unsigned short y2 = *rand & 0x00FF;
+                unsigned short v = *rand & 0x1;
                 flip(1);
-                for (i = 0; i < 16; i++) {
-                        //draw_line(i, 0, i, 255, 1);
-                        if (i > 1) {
-                                vert_line(vram + (0x1000) * ((i)&1), i - 2, 0);
-                        }
-                        if (i == 1)
-                                vert_line(vram + (0x1000) * ((i)&1), 15, 0);
-                        if (i == 0)
-                                vert_line(vram + (0x1000) * ((i)&1), 14, 0);
-
-                        vert_line(vram + (0x1000) * (i&1), i, 0xFFFF);
-                        flip((i & 1));
-                        delay(1);
-                        /*vert_line(vram + (0x2000) * ((i + 1)&1), i+1, 0xFFFF);
-                        flip(!(i & 1));
-                        vert_line(vram + (0x2000) * (i&1), i, 0);
-                        flip((i & 1));*/
-                }
+                draw_line(x1, y1, x2, y2, 1);
+                //set_bit(vram, 15, y1, 1);
+                //set_bit(vram, 14, y1, 1);
+                //set_bit(vram, 0, y1, 1);
+                //set_bit(vram, 1, y1, 1);
+                flip(0);
+                delay(400);
+                //draw_line(120, 240, 200, 100, 1);
+                //set_bit(vram, x, y, v);
         }
         //drawLine(0, 0, 200, 100);
 /*        for (i = 0; i < 256; i++) {

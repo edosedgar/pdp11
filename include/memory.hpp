@@ -35,6 +35,7 @@ class Memory {
         bool _violated;
         unsigned _vram_mode;
         bool _vram_dirty;
+        int _rand;
         MemoryMap* _mem;
         public:
                 Memory()
@@ -42,6 +43,8 @@ class Memory {
                         _mem = new MemoryMap;
                         _violated = false;
                         _vram_dirty = true;
+                        _rand = 5;
+                        srand(_rand);
                 }
                 ~Memory()
                 {

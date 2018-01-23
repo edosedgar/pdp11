@@ -6,7 +6,7 @@ AS=${PREFIX}/${PROG_P}-as
 OBJCOPY=${PREFIX}/${PROG_P}-objcopy
 LD=${PREFIX}/${PROG_P}-ld
 
-all: sample1.bin startup.bin bios vertline vertline_vsync
+all: sample1.bin startup.bin bios vertline vertline_vsync rand
 
 sample1.bin: sample1.S
 	$(AS) $^ -o sample1.o
@@ -54,6 +54,15 @@ fonts.out: fonts.o startup.o linker.fonts.T
 	$(LD) -nostdlib -T linker.fonts.T -L${C_PREFIX}/../lib/gcc/pdp11-aout/6.4.0/ -o $@
 
 fonts.o: fonts.c
+	$(CC) -fPIC -ffreestanding -nostdlib -nostartfiles -Wno-implicit-function-declaration -Wno-int-conversion $^ -o $@
+
+rand: rand.out
+	$(OBJCOPY) -O binary rand.out $@
+#	mv $^ $@
+rand.out: rand.o startup.o linker.rand.T
+	$(LD) -nostdlib -T linker.rand.T -L${C_PREFIX}/../lib/gcc/pdp11-aout/6.4.0/ -o $@
+
+rand.o: rand.c
 	$(CC) -fPIC -ffreestanding -nostdlib -nostartfiles -Wno-implicit-function-declaration -Wno-int-conversion $^ -o $@
 
 

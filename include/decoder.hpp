@@ -90,7 +90,7 @@ enum instructions {
         SEV,
         SEZ,
         SEN,
-        SSS,
+        CCC,
         SCC
 };
 //

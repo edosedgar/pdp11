@@ -1,7 +1,7 @@
 .PHONY: all decoder pdp11 samples
 -include *.d
 
-CXXFLAGS=-Wall -Wno-unused-function -Wno-unused-variable -O2 -I$(INCLUDES)
+CXXFLAGS=-Wall -Wno-unused-function -Wno-unused-variable -g3 -I$(INCLUDES)
 
 INCLUDES=./include
 

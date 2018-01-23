@@ -226,9 +226,19 @@ int PDP11::exec() {
                         _psw.psw.c = 0;
                         _psw.psw.z = 1;
                         break;
+                case COM:
+                        ret += op_addr(cur, &ea1, 1);
+                        tmp1 = ~tmp1;
+                        ret += mem.write(ea1, &tmp1);
+                        psw_value(tmp1);
+                        _psw.psw.v = 0;
+                        _psw.psw.c = 1;
+                        break;
                 case NEG:
                         ret += op_addr(cur, &ea1, 1);
-                        tmp1 = ((uint16_t) -((int16_t) tmp1));
+                        ret += mem.read(ea1, &tmp1);
+                        tmp2 = ~tmp1 + 1;
+                        tmp1 = tmp2;
                         ret += mem.write(ea1, &tmp1);
                         psw_value(tmp1);
                         _psw.psw.v = (tmp1 == 0100000);
@@ -277,6 +287,32 @@ int PDP11::exec() {
                         _psw.psw.v = _psw.psw.n + _psw.psw.c;
                         ret += mem.write(ea1, &tmp1);
                         break;
+                case ROR:
+                        ret += op_addr(cur, &ea1, 1);
+                        ret += mem.read(ea1, &tmp1);
+                        ret++;
+                        tmp2 = tmp1 & 1;
+                        tmp1 >>= 1;
+                        tmp1 += (_psw.psw.c << 15);
+                        _psw.psw.c = tmp2;
+                        _psw.psw.z = !!!tmp1;
+                        _psw.psw.n = !!(tmp1 & (1 << 15));
+                        _psw.psw.v = _psw.psw.n + _psw.psw.c;
+                        ret += mem.write(ea1, &tmp1);
+                        break;
+                case ROL:
+                        ret += op_addr(cur, &ea1, 1);
+                        ret += mem.read(ea1, &tmp1);
+                        ret++;
+                        tmp2 = !!(tmp1 & (15 << 1));
+                        tmp1 <<= 1;
+                        tmp1 += _psw.psw.c;
+                        _psw.psw.c = tmp2;
+                        _psw.psw.z = !!!tmp1;
+                        _psw.psw.n = !!(tmp1 & (1 << 15));
+                        _psw.psw.v = _psw.psw.n + _psw.psw.c;
+                        ret += mem.write(ea1, &tmp1);
+                        break;
                 case ASL:
                         ret += op_addr(cur, &ea1, 1);
                         ret += mem.read(ea1, &tmp1);
@@ -307,7 +343,7 @@ end1:
                                 _psw.psw.c = !!(tmp2 & (1 << i)); // ???
                                 tmp2 >>= i;
                         } else {
-                                tmp2 <<= ((tmp1 & 0x1F) - 1);
+                                tmp2 <<= ((tmp1 & 0x1F));
                         }
                         ret++;
                         }
@@ -520,6 +556,42 @@ branch:
 
                         ret += mem.write(MEM_SIZE + cur._op1  * 2, &tmp2);
                         }
+                        break;
+                 case CLC:
+                        _psw.psw.c = 0;
+                        break;
+                 case CLV:
+                        _psw.psw.v = 0;
+                        break;
+                 case CLZ:
+                        _psw.psw.z = 0;
+                        break;
+                 case CLN:
+                        _psw.psw.n = 0;
+                        break;
+                 case SEC:
+                        _psw.psw.c = 1;
+                        break;
+                 case SEV:
+                        _psw.psw.v = 1;
+                        break;
+                 case SEZ:
+                        _psw.psw.z = 1;
+                        break;
+                 case SEN:
+                        _psw.psw.n = 1;
+                        break;
+                 case CCC:
+                        _psw.psw.c = 0;
+                        _psw.psw.v = 0;
+                        _psw.psw.z = 0;
+                        _psw.psw.n = 0;
+                        break;
+                 case SCC:
+                        _psw.psw.c = 1;
+                        _psw.psw.v = 1;
+                        _psw.psw.z = 1;
+                        _psw.psw.n = 1;
                         break;
                  default:
                         interrupt(IILL);

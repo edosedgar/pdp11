@@ -10,6 +10,10 @@ int Memory::read(uint32_t addr, uint32_t* dest) {
         {
                 abort();
         }
+        if (addr == 0xff00) {
+                *dest = rand();
+                return Timings::timings()->get_reg();
+        }
         *dest = (0xFFFF & (uint32_t) _mem->wmem[addr / 2]);
         if (addr < MEM_SIZE) {
                 return Timings::timings()->get_mem_r();
@@ -55,6 +59,10 @@ int Memory::read(uint32_t addr, uint16_t* dest)
         if (addr >= sizeof(MemoryMap))
         {
                 abort();
+        }
+        if (addr == 0xff00) {
+                *dest = rand();
+                return Timings::timings()->get_reg();
         }
         *dest = _mem->wmem[addr / 2];
         if (addr < MEM_SIZE) {
@@ -102,6 +110,10 @@ int Memory::read(uint32_t addr, uint8_t* dest)
         {
                 abort();
         }
+        if (addr == 0xff00) {
+                *dest = rand();
+                return Timings::timings()->get_reg();
+        } 
         *dest = _mem->mem[addr];
         if (addr < MEM_SIZE) {
                 return Timings::timings()->get_mem_r();

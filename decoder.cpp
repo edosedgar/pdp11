@@ -67,7 +67,7 @@ const char* instruction_set[SCC+1] = {
         "SEV",
         "SEZ",
         "SEN",
-        "SSS",
+        "CCC",
         "SCC"
 };
 
@@ -104,6 +104,36 @@ Instruction::Instruction(InstrRaw* arr, size_t n) {
                         break;
                 case 0240:
                         _type = NOP;
+                        break;
+                case 0241:
+                        _type = CLC;
+                        break;
+                case 0242:
+                        _type = CLV;
+                        break;
+                case 0243:
+                        _type = CLZ;
+                        break;
+                case 0250:
+                        _type = CLN;
+                        break;
+                case 0261:
+                        _type = SEC;
+                        break;
+                case 0262:
+                        _type = SEV;
+                        break;
+                case 0264:
+                        _type = SEZ;
+                        break;
+                case 0270:
+                        _type = SEN;
+                        break;
+                case 0257:
+                        _type = CCC;
+                        break;
+                case 0277:
+                        _type = SCC;
                         break;
                 default:
                         break;
