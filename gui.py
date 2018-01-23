@@ -9,6 +9,24 @@ from gi.repository import Gtk, Gdk, Pango, GObject, PangoCairo
 import socket, sys
 import os
 
+class SearchDialog(Gtk.Dialog):
+
+    def __init__(self, parent):
+        Gtk.Dialog.__init__(self, "Server address", parent,
+            Gtk.DialogFlags.MODAL, buttons=(
+            Gtk.STOCK_FIND, Gtk.ResponseType.OK,
+            Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL))
+
+        box = self.get_content_area()
+
+        label = Gtk.Label("Type server IP address")
+        box.add(label)
+
+        self.entry = Gtk.Entry()
+        box.add(self.entry)
+
+        self.show_all()
+
 class MachineState():
 
     def __init__(self, stateview, server):
@@ -177,8 +195,11 @@ class SourceCode():
         self.code[address] = command, size, b
 
 class Server():
-    def __init__(self):
-        self.TCP_IP = '192.168.0.113'
+    def __init__(self, ip=None):
+        if (ip is None) or (len(ip) == 0):
+            self.TCP_IP = '127.0.0.1'
+        else:
+            self.TCP_IP = ip
         self.TCP_PORT = 6700
 
         self.channel = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -299,7 +320,16 @@ class Emulator(Gtk.Window):
         self.showed_vram = 0;
         self.binary_full_name = ""
 
-        self.server = Server()
+        dialog = SearchDialog(self)
+        response = dialog.run()
+        if response == Gtk.ResponseType.OK:
+            self.ip = dialog.entry.get_text()
+        else:
+            sys.exit(0)
+
+        dialog.destroy()
+
+        self.server = Server(self.ip)
         ret = self.server.em_send_init_gui()
         if (ret == "err"):
             dialog = Gtk.MessageDialog(self, 0, Gtk.MessageType.ERROR,
@@ -308,6 +338,7 @@ class Emulator(Gtk.Window):
             dialog.run()
             dialog.destroy()
             sys.exit(1)
+
         self.current_addr = 0x0000
         self.pixdata = [chr(0) for i in range(0, 8192)]
 
