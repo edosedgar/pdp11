@@ -41,19 +41,19 @@ class GUI_channel
         unsigned int current_address = 0;
         unsigned int emul_address = 0;
         unsigned int eff_bin_size = 0;
-        uint16_t *binary;
+        uint8_t* binary;
         int byte_rec;
         PDP11 *pdp;
         uint8_t *breakpoint;
 public:
         GUI_channel() {
                 port = 6700;
-                ip = "127.0.0.1";
+                ip = "192.168.0.113";
                 struct sockaddr_in server_addr;
                 int yes = 1;
                 socklen_t size;
                 current_state = REQUEST_DONE;
-                binary = new uint16_t[12288]();
+                binary = new uint8_t[24576]();
 
                 std::cout << "\n- Starting server..." << std::endl;
                 server = socket(AF_INET, SOCK_STREAM, 0);
@@ -107,13 +107,17 @@ public:
                 }
                 if (strstr(buffer, "em_load_file")) {
                         sscanf(buffer, "em_load_file %u", &eff_bin_size);
-                        current_state = BINARY_RECEIVE;
+                        //current_state = BINARY_RECEIVE;
                         answer_ok();
 #ifdef DEBUG_DEF
-                        std::cerr << ">> GUI is going to send bin \n";
+                        std::cerr << ">> GUI is going to send bin :" << eff_bin_size << "\n";
 #endif
+                        recv(client, binary, eff_bin_size, 0);
+                        current_state = REQUEST_DONE;
+                        answer_ok();
+                        breakpoint = new uint8_t[65536]();
+                        start_machine();
                         memset(buffer, 0, 256);
-                        byte_rec = 0;
                         return;
                 }
                 if (strstr(buffer, "em_get_command")) {
@@ -267,10 +271,13 @@ skip_first:
                 }
                 case BINARY_RECEIVE:
                         memcpy(binary + byte_rec, buffer, 256);
-                        byte_rec += 128;
-                        if (byte_rec * 2 >= eff_bin_size) {
+                        byte_rec += 256;
+                        if (byte_rec >= eff_bin_size) {
                                 current_state = REQUEST_DONE;
                                 answer_ok();
+                                for (auto i = 0; i < eff_bin_size; i++) {
+                                        printf("0x%X ", binary[i]);
+                                };
                                 breakpoint = new uint8_t[65536]();
                                 start_machine();
                         }
