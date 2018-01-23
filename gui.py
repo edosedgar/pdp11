@@ -31,6 +31,27 @@ class MachineState():
         self.cycle = 0 #us
         self.time = 0
 
+    def show_state_no_reg(self):
+        statebuffer2 = self.stateview.get_buffer()
+        string = "\n R0:" + "{0:#0{1}x}".format(self.r0, 6) + "    "
+        string += "R1:" + "{0:#0{1}x}".format(self.r1, 6) + "   "
+        string += "R2:" + "{0:#0{1}x}".format(self.r2, 6) + "\n"
+        string += " R3:" + "{0:#0{1}x}".format(self.r3, 6) + "    "
+        string += "R4:" + "{0:#0{1}x}".format(self.r4, 6) + "   "
+        string += "R5:" + "{0:#0{1}x}".format(self.r5, 6) + "\n"
+        string += "    R6(SP):" + "{0:#0{1}x}".format(self.r6, 6) + "  "
+        string += "R7(PC):" + "{0:#0{1}x}".format(self.r7, 6) + "   \n"
+        string += "     C:" + str(self.c) + " V:" + str(self.v)
+        string += " Z:" + str(self.z)
+        string += " N:" + str(self.n) + " T:" + str(self.t) + " I:"
+        string += "{0:#0{1}b}".format(self.i, 5) + "\n\n"
+        string += "      Time  = " + "{0:#0{1}d}".format(self.time, 13)
+        string += " us\n"
+        string += "      Cycle = " + "{0:#0{1}d}".format(self.cycle, 13)
+        string += " cyc"
+
+        statebuffer2.set_text(string)
+
     def show_state(self):
         self.fetch_state()
         statebuffer2 = self.stateview.get_buffer()
@@ -169,6 +190,10 @@ class Server():
         else:
             return "err"
 
+    def em_send_ok(self):
+        self.channel.send("ok")
+        return
+
     def em_send_init_gui(self):
         self.channel.send("em_init_gui\0")
         return self.em_recv_reply()
@@ -204,10 +229,33 @@ class Server():
         reply = self.em_recv_reply()
         return
 
+    def em_recv_disp_raw(self):
+        disp = self.channel.recv(8192)
+        return disp
+
     def em_recv_disp(self):
         self.channel.send("em_get_vram")
         disp = self.channel.recv(8192)
         return disp
+
+    def em_toggle_breakpoint(self, adr):
+        self.channel.send("em_toggle_break " + str(adr))
+        reply = self.em_recv_reply()
+        return
+
+    def em_send_run(self):
+        self.channel.send("em_run_machine")
+        reply = self.em_recv_reply()
+        return
+
+    def em_wait_run_result(self):
+        reply = self.channel.recv(256)
+        return reply
+
+    def em_receive_state(self):
+        reply = self.channel.recv(256)
+        l_data = reply.split()
+        return int(l_data[1]), int(l_data[0])
 
     def close(self):
         self.channel.close()
@@ -269,7 +317,7 @@ class Emulator(Gtk.Window):
         button_pause.set_icon_name("media-playback-pause")
         button_pause.set_label("Pause");
         button_pause.set_is_important(True)
-        button_pause.connect("clicked", self.pause_button_clicked)
+        #button_pause.connect("clicked", self.pause_button_clicked)
         toolbar.insert(button_pause, 3)
 
         button_reset = Gtk.ToolButton()
@@ -332,7 +380,7 @@ class Emulator(Gtk.Window):
         self.display.connect("draw", self.display_render);
 
         self.invert = 0
-        GObject.timeout_add(2, self.on_timer);
+        GObject.timeout_add(1, self.on_timer);
 
     def on_timer(self):
         self.display.queue_draw()
@@ -342,35 +390,44 @@ class Emulator(Gtk.Window):
         return True
 
     def emul_run_step(self):
-        self.current_addr, cycle, self.dirty_bit = self.server.em_send_step()
-        if (cycle == -1):
+        reply = self.server.em_wait_run_result()
+        if ("break" in reply):
+            self.server.em_send_ok()
+            self.set_title("PDP11 Emulator")
+            cycle, self.current_addr = self.server.em_receive_state()
+            self.mstate.add_emul_time(cycle)
+            self.disasm.show_cur_line(self.current_addr)
+            self.mstate.show_state()
+            self.pixdata = self.server.em_recv_disp()
+            self.run_emul = 0
+            return
+
+        if ("halt" in reply):
+            print "HALT3 \n"
+            self.server.em_send_ok()
             self.set_title("PDP11 Emulator (HALTED)")
+            cycle, self.current_addr = self.server.em_receive_state()
+            self.mstate.add_emul_time(cycle)
             self.halted = 1
             self.disasm.show_cur_line(self.current_addr)
             self.mstate.show_state()
             self.pixdata = self.server.em_recv_disp()
             self.run_emul = 0
             return
-        comm, size, b = self.disasm.code[self.current_addr]
-        if (b == 1):
-            self.set_title("PDP11 Emulator")
-            self.disasm.show_cur_line(self.current_addr)
-            self.mstate.show_state()
-            self.pixdata = self.server.em_recv_disp()
-            self.run_emul = 0
-            return
-        self.mstate.add_emul_time(cycle)
-        if (self.dirty_bit == 1):
-            self.disp_lock = 1
-            self.pixdata = self.server.em_recv_disp()
-            self.disp_lock = 0
-        print "Hello          "
+
+        if ("vram" in reply):
+            self.server.em_send_ok()
+            self.pixdata = self.server.em_recv_disp_raw()
+            self.server.em_send_ok()
+            cycle, self.current_addr = self.server.em_receive_state()
+            self.mstate.add_emul_time(cycle)
+            self.mstate.show_state_no_reg()
+            self.server.em_send_ok()
+
         return
 
     def display_render(self, widget, cr):
-        if (self.dirty_bit == 0):
-            return
-
+        self.cr = 0
         cr.set_source_rgb(0.0, 0.0, 0.0)
         cr.rectangle(0,0,512,512);
         cr.fill()
@@ -468,6 +525,7 @@ class Emulator(Gtk.Window):
         address = int(start.get_text(end), 16)
 
         self.disasm.toggle_break(address)
+        self.server.em_toggle_breakpoint(address)
         self.disasm.show_cur_line(self.current_addr)
 
     def pause_button_clicked(self, widget):
@@ -500,6 +558,7 @@ class Emulator(Gtk.Window):
         self.run_emul = 1
         self.disasm.show_cur_line(-1)
         self.set_title("PDP11 Emulator (Running)")
+        self.server.em_send_run()
 
 # Main interaction
 pdp_emul = Emulator()

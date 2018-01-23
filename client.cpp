@@ -12,6 +12,7 @@
 #include <iomanip>
 #include "pdp11.hpp"
 
+#define DEBUG_DEF
 // States after requests
 
 enum state_enum {
@@ -43,6 +44,7 @@ class GUI_channel
         uint16_t *binary;
         int byte_rec;
         PDP11 *pdp;
+        uint8_t *breakpoint;
 public:
         GUI_channel() {
                 port = 6700;
@@ -52,6 +54,7 @@ public:
                 socklen_t size;
                 current_state = REQUEST_DONE;
                 binary = new uint16_t[12288]();
+                breakpoint = new uint8_t[65536]();
 
                 std::cout << "\n- Starting server..." << std::endl;
                 server = socket(AF_INET, SOCK_STREAM, 0);
@@ -97,7 +100,9 @@ public:
                         goto skip_first;
                 if (strstr(buffer, "em_init_gui")) {
                         answer_ok();
-                        //std::cerr << ">> GUI started \n";
+#ifdef DEBUG_DEF
+                        std::cerr << ">> GUI started \n";
+#endif
                         memset(buffer, 0, 256);
                         return;
                 }
@@ -105,7 +110,9 @@ public:
                         sscanf(buffer, "em_load_file %u", &eff_bin_size);
                         current_state = BINARY_RECEIVE;
                         answer_ok();
-                        //std::cerr << ">> GUI is going to send bin \n";
+#ifdef DEBUG_DEF
+                        std::cerr << ">> GUI is going to send bin \n";
+#endif
                         memset(buffer, 0, 256);
                         byte_rec = 0;
                         return;
@@ -117,9 +124,11 @@ public:
 
                         ss << std::hex << com_adr;
                         current_state = COMMAND_SENDING;
-                        //std::cerr << ">> GUI requested com with address: 0x" \
-                        //          << std::setfill('0') << std::setw(4) \
-                        //          << std::hex << ss.str() << "\n";
+#ifdef DEBUG_DEF
+                        std::cerr << ">> GUI requested com with address: 0x" \
+                                  << std::setfill('0') << std::setw(4) \
+                                  << std::hex << ss.str() << "\n";
+#endif
                         current_address = com_adr;
 
                         memset(buffer, 0, 256);
@@ -130,8 +139,10 @@ public:
                         strcpy(buffer, cm.c_str());
                         send(client, &buffer, strlen(buffer), 0);
                         current_state = REQUEST_DONE;
-                        //std::cerr << ">> GUI received machine state >> " \
-                        //          << cm << "\n";
+#ifdef DEBUG_DEF
+                        std::cerr << ">> GUI received machine state >> " \
+                                  << cm << "\n";
+#endif
                         memset(buffer, 0, 256);
                         return;
                 }
@@ -150,21 +161,91 @@ public:
 
                         strcpy(buffer, ad.c_str());
                         send(client, &buffer, strlen(buffer), 0);
-                        //std::cerr << ">> GUI requsted step " << \
-                        //             ">> address, cycle: " << ad << "\n";
+#ifdef DEBUG_DEF
+                        std::cerr << ">> GUI requsted step " << \
+                                     ">> address, cycle: " << ad << "\n";
+#endif
                         memset(buffer, 0, 256);
                         return;
                 }
                 if (strstr(buffer, "em_reset_state")) {
                         pdp->reset();
                         answer_ok();
-                        //std::cerr << ">> GUI requsted reset \n";
+#ifdef DEBUG_DEF
+                        std::cerr << ">> GUI requsted reset \n";
+#endif
                         return;
                 }
                 if (strstr(buffer, "em_get_vram")) {
                         uint8_t *vram = pdp->get_vram();
                         send(client, vram, 8192, 0);
-                        //std::cerr << ">> GUI requsted display state \n";
+#ifdef DEBUG_DEF
+                        std::cerr << ">> GUI requsted display state \n";
+#endif
+                        memset(buffer, 0, 256);
+                        return;
+                }
+                if (strstr(buffer, "em_toggle_break")) {
+                        unsigned int com_adr;
+                        sscanf(buffer, "em_toggle_break %u", &com_adr);
+                        breakpoint[com_adr] ^= 255;
+                        answer_ok();
+#ifdef DEBUG_DEF
+                        std::cerr << ">> GUI toggled break >> "
+                                  << std::setfill('0') << std::setw(4) \
+                                  << std::hex << com_adr << "\n";
+#endif
+                        return;
+                }
+                if (strstr(buffer, "em_run_machine")) {
+                        int cycle = 0;
+                        int get_state = -1;
+                        int instr_addr = pdp->get_pc();
+                        int dirty_bit = 0;
+                        int sum_cycle = 0;
+                        uint8_t *vram = NULL;
+#ifdef DEBUG_DEF
+                        std::cerr << ">> GUI requsted run \n";
+#endif
+                        answer_ok();
+                        while (get_state != HALTED) {
+                                cycle = pdp->exec();
+                                instr_addr = pdp->get_pc();
+                                dirty_bit = pdp->get_dirty();
+                                //std::cerr << "One more step " << cycle << " " << instr_addr << "\n";
+                                sum_cycle += cycle;
+                                if (dirty_bit) {
+                                        vram = pdp->get_vram();
+                                        send(client, "vram", 5, 0);
+                                        recv(client, buffer, 256, 0);
+                                        send(client, vram, 8192, 0);
+                                        recv(client, buffer, 256, 0);
+                                        std::string cc = std::to_string(sum_cycle);
+                                        std::string ad = std::to_string(instr_addr);
+                                        ad += " " + cc;
+
+                                        strcpy(buffer, ad.c_str());
+                                        send(client, &buffer, strlen(buffer), 0);
+                                        recv(client, buffer, 256, 0);
+                                        sum_cycle = 0;
+                                }
+                                if (breakpoint[instr_addr]) {
+                                        send(client, "break", 6, 0);
+                                        recv(client, buffer, 256, 0);
+                                        break;
+                                }
+                                get_state = pdp->get_state();
+                        }
+                        if (pdp->get_state() == HALTED) {
+                                send(client, "halt", 5, 0);
+                                recv(client, buffer, 256, 0);
+                        }
+                        std::string cc = std::to_string(sum_cycle);
+                        std::string ad = std::to_string(instr_addr);
+                        ad += " " + cc;
+
+                        strcpy(buffer, ad.c_str());
+                        send(client, &buffer, strlen(buffer), 0);
                         memset(buffer, 0, 256);
                         return;
                 }
@@ -175,7 +256,9 @@ skip_first:
                         strcpy(buffer, cm.c_str());
                         send(client, &buffer, strlen(buffer), 0);
                         current_state = REQUEST_DONE;
-                        //std::cerr << "GUI received command >> " << cm << "\n";
+#ifdef DEBUG_DEF
+                        std::cerr << "GUI received command >> " << cm << "\n";
+#endif
                         memset(buffer, 0, 256);
                         break;
                 }
